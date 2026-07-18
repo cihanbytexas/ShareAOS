@@ -41,6 +41,7 @@ btnSelectFile.addEventListener('click', () => {
 const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
 
+// ÇAKIŞMA ÇÖZÜLDÜ: Değişken adı supabaseClient olarak değiştirildi.
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const rtcConfig = {
@@ -82,7 +83,6 @@ async function createRoomAndGenerateQR() {
 
     setupWebRTC();
     setupRealtimeListener();
-    // DÜZELTME: Gönderici artık doğrudan 'offer' göndermiyor. Alıcının gelmesini (Join) bekliyor.
 }
 
 // ==========================================
@@ -118,7 +118,7 @@ async function joinRoom(roomId) {
     setupWebRTC();
     setupRealtimeListener();
 
-    // DÜZELTME: Alıcı odaya girince dinlemeye başlaması için kısa bir süre verip "Ben geldim" sinyali atıyor.
+    // Alıcı odaya girince dinlemeye başlaması için kısa bir süre verip "Ben geldim" sinyali atıyor.
     setTimeout(async () => {
         await sendSignal('join', { message: 'Alıcı katıldı' });
     }, 1000);
@@ -179,43 +179,64 @@ function setupWebRTC() {
 }
 
 // ==========================================
-// 6. DOSYAYI PARÇALAYARAK GÖNDERME (Gönderici)
+// 6. DOSYAYI PARÇALAYARAK GÖNDERME (OPTİMİZE EDİLDİ)
 // ==========================================
 fileInput.addEventListener('change', async () => {
     const file = fileInput.files[0];
     if (!file) return;
 
     statusText.innerText = "Dosya gönderiliyor...";
-    btnSelectFile.classList.add('hidden'); // Gönderim anında butonu tekrar gizle
+    btnSelectFile.classList.add('hidden'); 
     
     dataChannel.send(JSON.stringify({
         name: file.name,
         size: file.size
     }));
 
-    const chunkSize = 16384; 
+    // 64KB'lık parçalar (Hız artışı için)
+    const chunkSize = 65536; 
     let offset = 0;
+    let lastProgress = 0; 
+
+    // Buffer limiti: 1 MB'ı geçerse göndermeyi geçici olarak durdur.
+    dataChannel.bufferedAmountLowThreshold = 1024 * 1024; 
 
     const fileReader = new FileReader();
     fileReader.onerror = error => console.error('Dosya okuma hatası:', error);
     
+    const readSlice = o => {
+        const slice = file.slice(offset, o + chunkSize);
+        fileReader.readAsArrayBuffer(slice);
+    };
+
     fileReader.onload = e => {
-        dataChannel.send(e.target.result);
-        offset += e.target.result.byteLength;
+        // Tünelin tıkanıp tıkanmadığını kontrol et (Backpressure kontrolü)
+        if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
+            dataChannel.addEventListener('bufferedamountlow', function listener() {
+                dataChannel.removeEventListener('bufferedamountlow', listener);
+                sendAndContinue(e.target.result, file.size);
+            });
+        } else {
+            sendAndContinue(e.target.result, file.size);
+        }
+    };
 
-        const percentage = (offset / file.size) * 100;
-        progressFill.style.width = percentage + "%";
+    const sendAndContinue = (data, totalSize) => {
+        dataChannel.send(data);
+        offset += data.byteLength;
 
-        if (offset < file.size) {
+        // İlerleme çubuğunu grafik motorunu yormamak için her %1'de bir güncelle
+        const currentProgress = Math.floor((offset / totalSize) * 100);
+        if (currentProgress > lastProgress) {
+            progressFill.style.width = currentProgress + "%";
+            lastProgress = currentProgress;
+        }
+
+        if (offset < totalSize) {
             readSlice(offset);
         } else {
             statusText.innerText = "Gönderim Tamamlandı!";
         }
-    };
-
-    const readSlice = o => {
-        const slice = file.slice(offset, o + chunkSize);
-        fileReader.readAsArrayBuffer(slice);
     };
 
     readSlice(0);
@@ -239,7 +260,6 @@ async function handleIncomingSignal(payload) {
     const msg = payload.new;
     if (msg.sender_id === localSenderId) return;
 
-    // DÜZELTME: Yeni Haberleşme Akışı
     if (msg.message_type === 'join') {
         // Alıcı geldi, şimdi tüneli başlat (Offer oluştur)
         statusText.innerText = "Alıcı cihaz bulundu, güvenli bağ kuruluyor...";

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Güvenli Dosya Transferi</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- QR Kod Oluşturucu CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <!-- QR Kod Okuyucu (Kamera) CDN -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>SECURE TRANSFER</h1>
+            <p>Uçtan uca şifreli, kayıpsız P2P dosya paylaşımı.</p>
+        </header>
+
+        <main>
+            <!-- Ana Butonlar -->
+            <div class="action-buttons">
+                <button id="btn-send" class="btn primary">Dosya Gönder</button>
+                <button id="btn-receive" class="btn outline">QR Tara / Al</button>
+            </div>
+
+            <!-- Gönderici: QR Kod Ekranı (Başlangıçta Gizli) -->
+            <div id="sender-section" class="hidden section">
+                <p>Alıcı cihazdan bu QR kodu okutun.</p>
+                <canvas id="qr-canvas"></canvas>
+                <input type="file" id="file-input" class="hidden">
+                <button id="btn-select-file" class="btn primary mt-2">Dosya Seç</button>
+            </div>
+
+            <!-- Alıcı: Kamera/QR Okuyucu Ekranı (Başlangıçta Gizli) -->
+            <div id="receiver-section" class="hidden section">
+                <div id="qr-reader" style="width: 100%; max-width: 300px; margin: 0 auto;"></div>
+            </div>
+
+            <!-- İlerleme Çubuğu (Dosya aktarılırken görünür) -->
+            <div id="progress-container" class="hidden mt-2">
+                <p id="status-text">Bağlantı bekleniyor...</p>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Kendi yazdığımız JS motorunu en sona ekliyoruz -->
+    <script src="rtc-core.js"></script>
+</body>
+</html>

@@ -1,24 +1,5 @@
 // ==========================================
-// 1. SUPABASE & WEBRTC AYARLARI
-// ==========================================
-const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-const rtcConfig = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-    ]
-};
-
-let peerConnection;
-let dataChannel;
-let currentRoomId = null;
-const localSenderId = Math.random().toString(36).substring(2, 15);
-
-// ==========================================
-// 2. ARAYÜZ (UI) ELEMENTLERİNİ YAKALAMA
+// 1. ARAYÜZ (UI) ELEMENTLERİNİ YAKALAMA 
 // ==========================================
 const btnSend = document.getElementById('btn-send');
 const btnReceive = document.getElementById('btn-receive');
@@ -49,6 +30,25 @@ btnSelectFile.addEventListener('click', () => {
 });
 
 // ==========================================
+// 2. SUPABASE & WEBRTC AYARLARI
+// ==========================================
+const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+const rtcConfig = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
+
+let peerConnection;
+let dataChannel;
+let currentRoomId = null;
+const localSenderId = Math.random().toString(36).substring(2, 15);
+
+// ==========================================
 // 3. ODA VE QR OLUŞTURMA (Gönderici)
 // ==========================================
 async function createRoomAndGenerateQR() {
@@ -57,14 +57,14 @@ async function createRoomAndGenerateQR() {
 
     const { data, error } = await supabase.from('rooms').insert([{}]).select().single();
     if (error) {
-        statusText.innerText = "Hata: Oda oluşturulamadı!";
+        statusText.innerText = "Hata: Veritabanı bağlantısı kurulamadı.";
+        console.error("Supabase Hatası:", error);
         return;
     }
     
     currentRoomId = data.id;
     const joinLink = `${window.location.origin}/?room=${currentRoomId}`;
     
-    // QR Kodu Çizdirme
     QRCode.toCanvas(qrCanvas, joinLink, { 
         width: 200,
         color: { dark: '#000000', light: '#ffffff' } 
@@ -90,22 +90,21 @@ function startQRScanner() {
 
     const html5QrCode = new Html5Qrcode("qr-reader");
     html5QrCode.start(
-        { facingMode: "environment" }, // Arka kamerayı kullan
+        { facingMode: "environment" }, 
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-            // QR okunduğunda
             html5QrCode.stop();
             document.getElementById('qr-reader').classList.add('hidden');
             
-            // Linkten Room ID'yi al
             const urlParams = new URLSearchParams(decodedText.split('?')[1]);
             const roomId = urlParams.get('room');
             
             if(roomId) joinRoom(roomId);
         },
-        (errorMessage) => { /* Tarama devam ediyor, hataları yoksay */ }
+        (errorMessage) => { }
     ).catch(err => {
         statusText.innerText = "Kamera izni reddedildi veya hata oluştu.";
+        console.error("Kamera Hatası:", err);
     });
 }
 
@@ -122,16 +121,14 @@ async function joinRoom(roomId) {
 function setupWebRTC() {
     peerConnection = new RTCPeerConnection(rtcConfig);
 
-    // Veri Kanalı (Dosya gönderimi için)
     dataChannel = peerConnection.createDataChannel("fileTransferChannel");
     dataChannel.binaryType = "arraybuffer";
 
     dataChannel.onopen = () => {
         statusText.innerText = "Bağlantı Kuruldu! Dosya seçebilirsiniz.";
-        btnSelectFile.classList.remove('hidden'); // Bağlantı kurulunca dosya seçme aktif olur
+        btnSelectFile.classList.remove('hidden');
     };
 
-    // Dosya Alma İşlemi (Alıcı Tarafı)
     let receivedBuffers = [];
     let expectedFileSize = 0;
     let receivedSize = 0;
@@ -142,7 +139,6 @@ function setupWebRTC() {
         receiveChannel.binaryType = "arraybuffer";
         
         receiveChannel.onmessage = (e) => {
-            // İlk mesaj metadata (dosya adı ve boyutu) string olarak gelir
             if (typeof e.data === 'string') {
                 const meta = JSON.parse(e.data);
                 expectedFileSize = meta.size;
@@ -151,15 +147,12 @@ function setupWebRTC() {
                 return;
             }
 
-            // Gelen veri parçalarını (chunk) biriktir
             receivedBuffers.push(e.data);
             receivedSize += e.data.byteLength;
 
-            // İlerleme çubuğunu güncelle
             const percentage = (receivedSize / expectedFileSize) * 100;
             progressFill.style.width = percentage + "%";
 
-            // Dosya tamamlandıysa birleştir ve indir
             if (receivedSize === expectedFileSize) {
                 statusText.innerText = "Transfer Tamamlandı!";
                 const blob = new Blob(receivedBuffers);
@@ -185,13 +178,12 @@ fileInput.addEventListener('change', async () => {
 
     statusText.innerText = "Dosya gönderiliyor...";
     
-    // Önce karşı tarafa dosya bilgisini gönder
     dataChannel.send(JSON.stringify({
         name: file.name,
         size: file.size
     }));
 
-    const chunkSize = 16384; // 16KB parçalar (WebRTC sınırı için en güvenlisi)
+    const chunkSize = 16384; 
     let offset = 0;
 
     const fileReader = new FileReader();
@@ -201,7 +193,6 @@ fileInput.addEventListener('change', async () => {
         dataChannel.send(e.target.result);
         offset += e.target.result.byteLength;
 
-        // İlerleme çubuğunu güncelle
         const percentage = (offset / file.size) * 100;
         progressFill.style.width = percentage + "%";
 

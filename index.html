@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Güvenli Dosya Transferi</title>
+    <title>BeamoDrop | Güvenli Transfer</title>
     <link rel="stylesheet" href="style.css">
     
     <!-- Supabase CDN -->
@@ -15,35 +15,62 @@
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h1>SECURE TRANSFER</h1>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <span class="icon">🚀</span>
+                <h1>BeamoDrop</h1>
+            </div>
             <p>Uçtan uca şifreli, kayıpsız P2P dosya paylaşımı.</p>
         </header>
 
-        <main>
+        <main class="card-glass">
             <!-- Ana Butonlar -->
             <div class="action-buttons">
-                <button id="btn-send" class="btn primary">Dosya Gönder</button>
-                <button id="btn-receive" class="btn outline">QR Tara / Al</button>
+                <button id="btn-send" class="btn primary-blue">
+                    <span class="btn-text">BeamO Gönder</span>
+                </button>
+                <button id="btn-receive" class="btn outline-blue">
+                    <span class="btn-text">QR Tara & Al</span>
+                </button>
             </div>
 
-            <!-- Gönderici: QR Kod Ekranı (Başlangıçta Gizli) -->
+            <!-- Gönderici Ekranı -->
             <div id="sender-section" class="hidden section">
-                <p>Alıcı cihazdan bu QR kodu okutun.</p>
-                <canvas id="qr-canvas"></canvas>
-                <input type="file" id="file-input" class="hidden">
-                <button id="btn-select-file" class="btn primary mt-2">Dosya Seç</button>
+                <div class="qr-box">
+                    <p class="subtitle">Alıcı cihazdan bu QR kodu okutun</p>
+                    <div class="canvas-wrapper">
+                        <canvas id="qr-canvas"></canvas>
+                    </div>
+                </div>
+
+                <input type="file" id="file-input" class="hidden" multiple>
+                
+                <!-- YENİ: Seçilen Dosyaların Vitrini -->
+                <div id="staging-area" class="hidden staging-container">
+                    <div class="staging-header">
+                        <span>Seçilen Dosyalar</span>
+                        <span id="file-count-badge" class="badge">0</span>
+                    </div>
+                    <div id="file-list" class="file-grid"></div>
+                    <button id="btn-start-transfer" class="btn primary-blue mt-2 animate-pulse">BeamO Aktarımını Başlat</button>
+                </div>
+
+                <button id="btn-select-file" class="btn outline-blue mt-2 hidden">Dosya Ekle</button>
             </div>
 
-            <!-- Alıcı: Kamera/QR Okuyucu Ekranı (Başlangıçta Gizli) -->
+            <!-- Alıcı Ekranı -->
             <div id="receiver-section" class="hidden section">
-                <div id="qr-reader" style="width: 100%; max-width: 300px; margin: 0 auto;"></div>
+                <p class="subtitle">Kamerayı QR Koda Hizalayın</p>
+                <div id="qr-reader" class="scanner-box"></div>
             </div>
 
-            <!-- İlerleme Çubuğu (Dosya aktarılırken görünür) -->
-            <div id="progress-container" class="hidden mt-2">
-                <p id="status-text">Bağlantı bekleniyor...</p>
+            <!-- İlerleme Çubuğu -->
+            <div id="progress-container" class="hidden mt-2 progress-wrapper">
+                <div class="progress-info">
+                    <span id="status-text">Bağlantı bekleniyor...</span>
+                    <span id="progress-percentage">0%</span>
+                </div>
                 <div class="progress-bar">
                     <div id="progress-fill" class="progress-fill"></div>
                 </div>
@@ -51,7 +78,6 @@
         </main>
     </div>
 
-    <!-- Script dosyamızın adı app.js olarak düzeltildi -->
     <script src="app.js"></script>
 </body>
 </html>

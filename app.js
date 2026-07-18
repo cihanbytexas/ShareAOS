@@ -12,6 +12,9 @@ const progressContainer = document.getElementById('progress-container');
 const progressFill = document.getElementById('progress-fill');
 const statusText = document.getElementById('status-text');
 
+// Başlangıçta Dosya Seç butonunu gizle (Sadece tünel açılınca görünecek)
+btnSelectFile.classList.add('hidden');
+
 // Buton Tıklama Olayları
 btnSend.addEventListener('click', () => {
     document.querySelector('.action-buttons').classList.add('hidden');
@@ -26,7 +29,10 @@ btnReceive.addEventListener('click', () => {
 });
 
 btnSelectFile.addEventListener('click', () => {
-    fileInput.click();
+    // Güvenlik: Tünel açık değilse butona basılmasını engelle
+    if (dataChannel && dataChannel.readyState === 'open') {
+        fileInput.click();
+    }
 });
 
 // ==========================================
@@ -35,7 +41,6 @@ btnSelectFile.addEventListener('click', () => {
 const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
 
-// ÇAKIŞMA ÇÖZÜLDÜ: Değişken adı supabaseClient olarak değiştirildi.
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const rtcConfig = {
@@ -77,10 +82,7 @@ async function createRoomAndGenerateQR() {
 
     setupWebRTC();
     setupRealtimeListener();
-    
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    await sendSignal('offer', offer);
+    // DÜZELTME: Gönderici artık doğrudan 'offer' göndermiyor. Alıcının gelmesini (Join) bekliyor.
 }
 
 // ==========================================
@@ -115,6 +117,11 @@ async function joinRoom(roomId) {
     statusText.innerText = "Göndericiye bağlanılıyor...";
     setupWebRTC();
     setupRealtimeListener();
+
+    // DÜZELTME: Alıcı odaya girince dinlemeye başlaması için kısa bir süre verip "Ben geldim" sinyali atıyor.
+    setTimeout(async () => {
+        await sendSignal('join', { message: 'Alıcı katıldı' });
+    }, 1000);
 }
 
 // ==========================================
@@ -128,7 +135,7 @@ function setupWebRTC() {
 
     dataChannel.onopen = () => {
         statusText.innerText = "Bağlantı Kuruldu! Dosya seçebilirsiniz.";
-        btnSelectFile.classList.remove('hidden');
+        btnSelectFile.classList.remove('hidden'); // Tünel açılınca buton görünür
     };
 
     let receivedBuffers = [];
@@ -179,6 +186,7 @@ fileInput.addEventListener('change', async () => {
     if (!file) return;
 
     statusText.innerText = "Dosya gönderiliyor...";
+    btnSelectFile.classList.add('hidden'); // Gönderim anında butonu tekrar gizle
     
     dataChannel.send(JSON.stringify({
         name: file.name,
@@ -214,7 +222,7 @@ fileInput.addEventListener('change', async () => {
 });
 
 // ==========================================
-// 7. SİNYALLEŞME (SUPABASE)
+// 7. SİNYALLEŞME (SUPABASE REALTIME)
 // ==========================================
 function setupRealtimeListener() {
     supabaseClient.channel('signaling_channel')
@@ -231,7 +239,15 @@ async function handleIncomingSignal(payload) {
     const msg = payload.new;
     if (msg.sender_id === localSenderId) return;
 
-    if (msg.message_type === 'offer') {
+    // DÜZELTME: Yeni Haberleşme Akışı
+    if (msg.message_type === 'join') {
+        // Alıcı geldi, şimdi tüneli başlat (Offer oluştur)
+        statusText.innerText = "Alıcı cihaz bulundu, güvenli bağ kuruluyor...";
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await sendSignal('offer', offer);
+    }
+    else if (msg.message_type === 'offer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.payload));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);

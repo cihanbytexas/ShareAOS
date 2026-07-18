@@ -11,12 +11,12 @@ const qrCanvas = document.getElementById('qr-canvas');
 const progressContainer = document.getElementById('progress-container');
 const progressFill = document.getElementById('progress-fill');
 const statusText = document.getElementById('status-text');
+const progressPercentage = document.getElementById('progress-percentage');
 
-// Yeni Eklenen UI Elementleri (HTML'e eklenmesi gerekenler)
-// <div id="staging-area" class="hidden"> <div id="file-list"></div> <button id="btn-start-transfer">Aktarımı Başlat</button> </div>
 const stagingArea = document.getElementById('staging-area');
 const fileListContainer = document.getElementById('file-list');
 const btnStartTransfer = document.getElementById('btn-start-transfer');
+const fileCountBadge = document.getElementById('file-count-badge');
 
 // ==========================================
 // 2. DURUM (STATE) VE KUYRUK DEĞİŞKENLERİ
@@ -44,10 +44,6 @@ let peerConnection;
 let dataChannel;
 let currentRoomId = null;
 const localSenderId = Math.random().toString(36).substring(2, 15);
-
-// Başlangıçta Butonları Gizle
-if(btnSelectFile) btnSelectFile.classList.add('hidden');
-if(stagingArea) stagingArea.classList.add('hidden');
 
 // ==========================================
 // 4. TEMEL BUTON OLAYLARI
@@ -78,13 +74,12 @@ if (btnStartTransfer) {
 // 5. ODA, QR VE SİNYALLEŞME MANTIKLARI
 // ==========================================
 async function createRoomAndGenerateQR() {
-    statusText.innerText = "Oda oluşturuluyor...";
+    statusText.innerText = "BeamO Ağı Kuruluyor...";
     progressContainer.classList.remove('hidden');
 
     const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
     if (error) {
-        statusText.innerText = "Hata: Veritabanı bağlantısı kurulamadı.";
-        console.error("Supabase Hatası:", error);
+        statusText.innerText = "Hata: Sunucuya bağlanılamadı.";
         return;
     }
     
@@ -92,11 +87,12 @@ async function createRoomAndGenerateQR() {
     const joinLink = `${window.location.origin}/?room=${currentRoomId}`;
     
     QRCode.toCanvas(qrCanvas, joinLink, { 
-        width: 200,
-        color: { dark: '#000000', light: '#ffffff' } 
+        width: 220,
+        margin: 1,
+        color: { dark: '#090e17', light: '#ffffff' } 
     }, function (error) {
         if (error) console.error(error);
-        statusText.innerText = "QR Kod hazır. Alıcı cihazdan okutun.";
+        statusText.innerText = "Alıcı cihazı bekliyor...";
     });
 
     setupWebRTC();
@@ -110,7 +106,7 @@ function startQRScanner() {
     const html5QrCode = new Html5Qrcode("qr-reader");
     html5QrCode.start(
         { facingMode: "environment" }, 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 15, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
             html5QrCode.stop();
             document.getElementById('qr-reader').classList.add('hidden');
@@ -126,7 +122,7 @@ function startQRScanner() {
 
 async function joinRoom(roomId) {
     currentRoomId = roomId;
-    statusText.innerText = "Göndericiye bağlanılıyor...";
+    statusText.innerText = "BeamO Ağına Bağlanılıyor...";
     setupWebRTC();
     setupRealtimeListener();
 
@@ -145,7 +141,7 @@ function setupWebRTC() {
     dataChannel.binaryType = "arraybuffer";
 
     dataChannel.onopen = () => {
-        statusText.innerText = "Bağlantı Kuruldu! Dosya seçebilirsiniz.";
+        statusText.innerText = "BeamO Ağı Hazır! Dosya Seçin.";
         btnSelectFile.classList.remove('hidden'); 
     };
 
@@ -159,12 +155,12 @@ function setupWebRTC() {
         receiveChannel.binaryType = "arraybuffer";
         
         receiveChannel.onmessage = (e) => {
-            // METİN SİNYALLERİ (Manifesto, Start, ACK)
+            // METİN SİNYALLERİ
             if (typeof e.data === 'string') {
                 const data = JSON.parse(e.data);
                 
                 if (data.type === 'manifest') {
-                    statusText.innerText = `${data.totalFiles} adet dosya bekleniyor...`;
+                    statusText.innerText = `Gelen BeamO: ${data.totalFiles} Dosya`;
                     receiveChannel.send(JSON.stringify({ type: 'ready_for_next' }));
                 }
                 else if (data.type === 'start_file') {
@@ -174,13 +170,14 @@ function setupWebRTC() {
                     receivedBuffers = [];
                     statusText.innerText = `İndiriliyor: ${fileName}`;
                     progressFill.style.width = "0%";
+                    progressPercentage.innerText = "0%";
                 }
                 else if (data.type === 'file_received_ack') {
                     currentFileIndex++;
-                    sendNextFile(); // Sonraki dosyayı ateşle
+                    sendNextFile(); 
                 }
                 else if (data.type === 'ready_for_next') {
-                     sendNextFile(); // İlk dosyayı ateşle
+                     sendNextFile(); 
                 }
                 return;
             }
@@ -191,6 +188,7 @@ function setupWebRTC() {
 
             const percentage = Math.floor((receivedSize / expectedFileSize) * 100);
             progressFill.style.width = percentage + "%";
+            progressPercentage.innerText = percentage + "%";
 
             // Dosya tamamen alındı
             if (receivedSize === expectedFileSize) {
@@ -201,7 +199,6 @@ function setupWebRTC() {
                 downloadLink.download = fileName;
                 downloadLink.click();
                 
-                // Göndericiye bir sonrakini yollaması için onay (ACK) at
                 receiveChannel.send(JSON.stringify({ type: 'file_received_ack' }));
             }
         };
@@ -213,7 +210,7 @@ function setupWebRTC() {
 }
 
 // ==========================================
-// 7. VİTRİN VE ÇOKLU DOSYA SEÇİMİ
+// 7. YENİ TASARIMA UYGUN VİTRİN DOM YÖNETİMİ
 // ==========================================
 fileInput.addEventListener('change', (e) => {
     const newFiles = Array.from(e.target.files);
@@ -223,7 +220,6 @@ fileInput.addEventListener('change', (e) => {
     updateVitrinUI();
 });
 
-// Küresel bir fonksiyon olarak tanımlıyoruz ki inline HTML'den tetiklenebilsin
 window.removeFileFromQueue = function(index) {
     fileQueue.splice(index, 1);
     updateVitrinUI();
@@ -233,19 +229,22 @@ function updateVitrinUI() {
     if (!fileListContainer) return;
     fileListContainer.innerHTML = '';
     
+    // Yeni tasarıma uyumlu class'lar eklendi
     fileQueue.forEach((file, index) => {
-        const ext = file.name.split('.').pop().toUpperCase();
+        const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
         
         const item = document.createElement('div');
-        // Sade, siyah-beyaz, resmi önizleme kartları
-        item.style.cssText = "position: relative; display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; background: #000; border: 1px solid #fff; margin: 5px; color: #fff; font-size: 12px; text-align: center; overflow: hidden; font-family: monospace;";
+        item.className = 'file-item';
         
         item.innerHTML = `
-            <span style="padding: 5px; word-break: break-all;">${ext}<br/>${(file.size / (1024*1024)).toFixed(1)}MB</span>
-            <button onclick="removeFileFromQueue(${index})" style="position: absolute; top: 0; right: 0; background: red; color: white; border: none; font-weight: bold; cursor: pointer; width: 20px; height: 20px;">X</button>
+            <span class="file-ext">${ext}</span>
+            <span class="file-size">${(file.size / (1024*1024)).toFixed(1)}MB</span>
+            <button class="btn-remove" onclick="removeFileFromQueue(${index})">X</button>
         `;
         fileListContainer.appendChild(item);
     });
+
+    fileCountBadge.innerText = fileQueue.length;
 
     if (fileQueue.length > 0) {
         stagingArea.classList.remove('hidden');
@@ -266,7 +265,7 @@ function startTransfer() {
     
     btnStartTransfer.classList.add('hidden');
     btnSelectFile.classList.add('hidden');
-    document.querySelectorAll('button[onclick^="removeFileFromQueue"]').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.btn-remove').forEach(btn => btn.style.display = 'none');
     
     const manifesto = fileQueue.map(file => ({
         name: file.name,
@@ -274,7 +273,7 @@ function startTransfer() {
         type: file.type
     }));
 
-    statusText.innerText = "Manifesto gönderiliyor...";
+    statusText.innerText = "BeamO Aktarımı Hazırlanıyor...";
     dataChannel.send(JSON.stringify({ 
         type: 'manifest', 
         totalFiles: fileQueue.length, 
@@ -284,9 +283,10 @@ function startTransfer() {
 
 function sendNextFile() {
     if (currentFileIndex >= fileQueue.length) {
-        statusText.innerText = "Tüm dosyalar başarıyla gönderildi!";
+        statusText.innerText = "Tüm BeamO Aktarımları Tamamlandı! 🚀";
+        progressPercentage.innerText = "100%";
         isTransferring = false;
-        fileQueue = []; // Kuyruğu temizle
+        fileQueue = []; 
         updateVitrinUI();
         btnSelectFile.classList.remove('hidden');
         return; 
@@ -332,6 +332,7 @@ function sendNextFile() {
         const currentProgress = Math.floor((offset / totalSize) * 100);
         if (currentProgress > lastProgress) {
             progressFill.style.width = currentProgress + "%";
+            progressPercentage.innerText = currentProgress + "%";
             lastProgress = currentProgress;
         }
 
@@ -364,7 +365,7 @@ async function handleIncomingSignal(payload) {
     if (msg.sender_id === localSenderId) return;
 
     if (msg.message_type === 'join') {
-        statusText.innerText = "Alıcı cihaz bulundu, güvenli bağ kuruluyor...";
+        statusText.innerText = "Alıcı cihaz bulundu, BeamO kuruluyor...";
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         await sendSignal('offer', offer);

@@ -34,7 +34,9 @@ btnSelectFile.addEventListener('click', () => {
 // ==========================================
 const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+// ÇAKIŞMA ÇÖZÜLDÜ: Değişken adı supabaseClient olarak değiştirildi.
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const rtcConfig = {
     iceServers: [
@@ -55,7 +57,7 @@ async function createRoomAndGenerateQR() {
     statusText.innerText = "Oda oluşturuluyor...";
     progressContainer.classList.remove('hidden');
 
-    const { data, error } = await supabase.from('rooms').insert([{}]).select().single();
+    const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
     if (error) {
         statusText.innerText = "Hata: Veritabanı bağlantısı kurulamadı.";
         console.error("Supabase Hatası:", error);
@@ -215,7 +217,7 @@ fileInput.addEventListener('change', async () => {
 // 7. SİNYALLEŞME (SUPABASE)
 // ==========================================
 function setupRealtimeListener() {
-    supabase.channel('signaling_channel')
+    supabaseClient.channel('signaling_channel')
         .on('postgres_changes', { 
             event: 'INSERT', 
             schema: 'public', 
@@ -244,7 +246,7 @@ async function handleIncomingSignal(payload) {
 }
 
 async function sendSignal(type, payloadData) {
-    await supabase.from('signaling_messages').insert([{
+    await supabaseClient.from('signaling_messages').insert([{
         room_id: currentRoomId,
         sender_id: localSenderId,
         message_type: type,

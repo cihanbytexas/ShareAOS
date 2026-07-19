@@ -3,11 +3,16 @@
 // ==========================================
 const btnSend = document.getElementById('btn-send');
 const btnReceive = document.getElementById('btn-receive');
+const actionButtons = document.getElementById('action-buttons');
 const senderSection = document.getElementById('sender-section');
 const receiverSection = document.getElementById('receiver-section');
+const btnBack = document.getElementById('btn-back');
+
 const fileInput = document.getElementById('file-input');
 const btnSelectFile = document.getElementById('btn-select-file');
+const qrBox = document.getElementById('qr-box');
 const qrCanvas = document.getElementById('qr-canvas');
+
 const progressContainer = document.getElementById('progress-container');
 const progressFill = document.getElementById('progress-fill');
 const statusText = document.getElementById('status-text');
@@ -18,19 +23,23 @@ const fileListContainer = document.getElementById('file-list');
 const btnStartTransfer = document.getElementById('btn-start-transfer');
 const fileCountBadge = document.getElementById('file-count-badge');
 
+const scannerContainer = document.getElementById('scanner-container');
+const receivedGallery = document.getElementById('received-gallery');
+const receivedList = document.getElementById('received-list');
+
 // ==========================================
 // 2. DURUM (STATE) VE KUYRUK DEĞİŞKENLERİ
 // ==========================================
 let fileQueue = []; 
 let currentFileIndex = 0; 
 let isTransferring = false;
+let isConnected = false;
 
 // ==========================================
 // 3. SUPABASE & WEBRTC AYARLARI
 // ==========================================
 const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
-
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const rtcConfig = {
@@ -43,22 +52,27 @@ const rtcConfig = {
 let peerConnection;
 let dataChannel;
 let currentRoomId = null;
+let html5QrCode = null;
 const localSenderId = Math.random().toString(36).substring(2, 15);
 
 // ==========================================
-// 4. TEMEL BUTON OLAYLARI
+// 4. TEMEL BUTON VE RESET OLAYLARI
 // ==========================================
 btnSend.addEventListener('click', () => {
-    document.querySelector('.action-buttons').classList.add('hidden');
+    actionButtons.classList.add('hidden');
     senderSection.classList.remove('hidden');
+    btnBack.classList.remove('hidden');
     createRoomAndGenerateQR();
 });
 
 btnReceive.addEventListener('click', () => {
-    document.querySelector('.action-buttons').classList.add('hidden');
+    actionButtons.classList.add('hidden');
     receiverSection.classList.remove('hidden');
+    btnBack.classList.remove('hidden');
     startQRScanner();
 });
+
+btnBack.addEventListener('click', resetApp);
 
 btnSelectFile.addEventListener('click', () => {
     if (dataChannel && dataChannel.readyState === 'open') {
@@ -66,32 +80,55 @@ btnSelectFile.addEventListener('click', () => {
     }
 });
 
-if (btnStartTransfer) {
-    btnStartTransfer.addEventListener('click', startTransfer);
+btnStartTransfer.addEventListener('click', startTransfer);
+
+function resetApp() {
+    // 1. WebRTC'yi kapat
+    if (dataChannel) dataChannel.close();
+    if (peerConnection) peerConnection.close();
+    isConnected = false;
+    
+    // 2. Supabase dinlemeyi kes
+    supabaseClient.removeAllChannels();
+
+    // 3. Kamerayı kapat
+    if (html5QrCode) {
+        html5QrCode.stop().catch(e => console.log("Kamera zaten kapalı."));
+    }
+
+    // 4. Değişkenleri ve Arayüzü Sıfırla
+    fileQueue = [];
+    isTransferring = false;
+    fileInput.value = '';
+    
+    actionButtons.classList.remove('hidden');
+    senderSection.classList.add('hidden');
+    receiverSection.classList.add('hidden');
+    btnBack.classList.add('hidden');
+    progressContainer.classList.add('hidden');
+    stagingArea.classList.add('hidden');
+    receivedGallery.classList.add('hidden');
+    qrBox.classList.remove('hidden');
+    scannerContainer.classList.remove('hidden');
+    receivedList.innerHTML = '';
 }
 
 // ==========================================
-// 5. ODA, QR VE SİNYALLEŞME MANTIKLARI
+// 5. SİNYALLEŞME & KAMERA (QR)
 // ==========================================
 async function createRoomAndGenerateQR() {
     statusText.innerText = "BeamO Ağı Kuruluyor...";
     progressContainer.classList.remove('hidden');
 
     const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
-    if (error) {
-        statusText.innerText = "Hata: Sunucuya bağlanılamadı.";
-        return;
-    }
+    if (error) return;
     
     currentRoomId = data.id;
     const joinLink = `${window.location.origin}/?room=${currentRoomId}`;
     
     QRCode.toCanvas(qrCanvas, joinLink, { 
-        width: 220,
-        margin: 1,
-        color: { dark: '#090e17', light: '#ffffff' } 
+        width: 220, margin: 1, color: { dark: '#04060c', light: '#ffffff' } 
     }, function (error) {
-        if (error) console.error(error);
         statusText.innerText = "Alıcı cihazı bekliyor...";
     });
 
@@ -103,21 +140,19 @@ function startQRScanner() {
     statusText.innerText = "Kamera başlatılıyor...";
     progressContainer.classList.remove('hidden');
 
-    const html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode = new Html5Qrcode("qr-reader");
     html5QrCode.start(
         { facingMode: "environment" }, 
         { fps: 15, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
             html5QrCode.stop();
-            document.getElementById('qr-reader').classList.add('hidden');
+            scannerContainer.classList.add('hidden'); // QR okununca kamerayı gizle
             const urlParams = new URLSearchParams(decodedText.split('?')[1]);
             const roomId = urlParams.get('room');
             if(roomId) joinRoom(roomId);
         },
         (errorMessage) => { }
-    ).catch(err => {
-        statusText.innerText = "Kamera izni reddedildi.";
-    });
+    );
 }
 
 async function joinRoom(roomId) {
@@ -141,20 +176,22 @@ function setupWebRTC() {
     dataChannel.binaryType = "arraybuffer";
 
     dataChannel.onopen = () => {
+        isConnected = true;
+        qrBox.classList.add('hidden'); // BAĞLANTI KURULUNCA QR KODU GİZLE
         statusText.innerText = "BeamO Ağı Hazır! Dosya Seçin.";
         btnSelectFile.classList.remove('hidden'); 
+        progressPercentage.innerText = "";
     };
 
-    // KRİTİK HATA ÇÖZÜMÜ: Göndericinin, Alıcıdan gelen yanıtları duyabilmesi için dinleyici eklendi.
     dataChannel.onmessage = (e) => {
         if (typeof e.data === 'string') {
             const data = JSON.parse(e.data);
             if (data.type === 'file_received_ack') {
                 currentFileIndex++;
-                sendNextFile(); // Önceki dosya bitti, sonrakine geç
+                sendNextFile(); 
             }
             else if (data.type === 'ready_for_next') {
-                 sendNextFile(); // Alıcı manifesto'yu okudu ve hazır, ilk dosyayı yolla
+                 sendNextFile(); 
             }
         }
     };
@@ -163,24 +200,24 @@ function setupWebRTC() {
     let expectedFileSize = 0;
     let receivedSize = 0;
     let fileName = "gelen_dosya";
+    let fileType = "";
 
     peerConnection.ondatachannel = (event) => {
         const receiveChannel = event.channel;
         receiveChannel.binaryType = "arraybuffer";
         
         receiveChannel.onmessage = (e) => {
-            // METİN SİNYALLERİ (Alıcı Tarafı)
             if (typeof e.data === 'string') {
                 const data = JSON.parse(e.data);
                 
                 if (data.type === 'manifest') {
                     statusText.innerText = `Gelen BeamO: ${data.totalFiles} Dosya`;
-                    // Alıcı hazır olduğunu göndericiye bildirir
                     receiveChannel.send(JSON.stringify({ type: 'ready_for_next' }));
                 }
                 else if (data.type === 'start_file') {
                     expectedFileSize = data.size;
                     fileName = data.name;
+                    fileType = data.mimeType || ""; 
                     receivedSize = 0;
                     receivedBuffers = [];
                     statusText.innerText = `İndiriliyor: ${fileName}`;
@@ -190,7 +227,6 @@ function setupWebRTC() {
                 return;
             }
 
-            // ARRAYBUFFER: Dosya Parçaları İşleniyor
             receivedBuffers.push(e.data);
             receivedSize += e.data.byteLength;
 
@@ -198,16 +234,21 @@ function setupWebRTC() {
             progressFill.style.width = percentage + "%";
             progressPercentage.innerText = percentage + "%";
 
-            // Dosya tamamen alındı
+            // Dosya tamamen alındığında -> İNDİR & VİTRİNE EKLE (ÖNİZLEME)
             if (receivedSize === expectedFileSize) {
                 statusText.innerText = `${fileName} başarıyla alındı.`;
-                const blob = new Blob(receivedBuffers);
+                const blob = new Blob(receivedBuffers, { type: fileType });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // İndirmeyi tetikle
                 const downloadLink = document.createElement('a');
-                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.href = blobUrl;
                 downloadLink.download = fileName;
                 downloadLink.click();
                 
-                // Alıcı, dosyayı indirdiğini göndericiye onaylar (ACK)
+                // Medya Galerisine Ekle
+                renderReceivedMedia(fileName, fileType, blobUrl);
+
                 receiveChannel.send(JSON.stringify({ type: 'file_received_ack' }));
             }
         };
@@ -218,8 +259,30 @@ function setupWebRTC() {
     };
 }
 
+// Alıcı tarafı galeri oluşturucu
+function renderReceivedMedia(name, type, url) {
+    receivedGallery.classList.remove('hidden');
+    const item = document.createElement('div');
+    item.className = 'received-item';
+
+    let mediaHTML = '';
+    if (type.startsWith('image/')) {
+        mediaHTML = `<img src="${url}" class="received-media" alt="${name}">`;
+    } else if (type.startsWith('video/')) {
+        mediaHTML = `<video src="${url}" controls class="received-media"></video>`;
+    } else if (type.startsWith('audio/')) {
+        mediaHTML = `<audio src="${url}" controls class="received-audio"></audio>`;
+    }
+
+    item.innerHTML = `
+        ${mediaHTML}
+        <span style="font-size: 0.8rem; word-break: break-all;">${name}</span>
+    `;
+    receivedList.appendChild(item);
+}
+
 // ==========================================
-// 7. YENİ TASARIMA UYGUN VİTRİN DOM YÖNETİMİ
+// 7. YENİ DOSYA SEÇİMİ VE GÖNDERİCİ ÖNİZLEMESİ
 // ==========================================
 fileInput.addEventListener('change', (e) => {
     const newFiles = Array.from(e.target.files);
@@ -227,6 +290,9 @@ fileInput.addEventListener('change', (e) => {
 
     fileQueue = [...fileQueue, ...newFiles];
     updateVitrinUI();
+    
+    // INPUT'UN HAFIZASINI TEMİZLE (Aynı dosyayı tekrar seçebilmek için)
+    fileInput.value = ''; 
 });
 
 window.removeFileFromQueue = function(index) {
@@ -239,13 +305,23 @@ function updateVitrinUI() {
     fileListContainer.innerHTML = '';
     
     fileQueue.forEach((file, index) => {
-        const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
-        
         const item = document.createElement('div');
         item.className = 'file-item';
         
+        // Medya Önizleme İçeriği
+        let previewHTML = '';
+        if (file.type.startsWith('image/')) {
+            const tempUrl = URL.createObjectURL(file);
+            previewHTML = `<img src="${tempUrl}" class="media-preview">`;
+        } else if (file.type.startsWith('video/')) {
+            previewHTML = `<div class="media-preview" style="background:#111; display:flex; align-items:center; justify-content:center; color:#5eead4; font-size:0.6rem;">VIDEO</div>`;
+        } else {
+            const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
+            previewHTML = `<span class="file-ext" style="margin: 15px 0;">${ext}</span>`;
+        }
+        
         item.innerHTML = `
-            <span class="file-ext">${ext}</span>
+            ${previewHTML}
             <span class="file-size">${(file.size / (1024*1024)).toFixed(1)}MB</span>
             <button class="btn-remove" onclick="removeFileFromQueue(${index})">X</button>
         `;
@@ -256,6 +332,7 @@ function updateVitrinUI() {
 
     if (fileQueue.length > 0) {
         stagingArea.classList.remove('hidden');
+        btnStartTransfer.classList.remove('hidden'); // Aktarımı başlat butonu tekrar görünür olmalı
         btnSelectFile.innerText = "Daha Fazla Dosya Ekle";
     } else {
         stagingArea.classList.add('hidden');
@@ -264,7 +341,7 @@ function updateVitrinUI() {
 }
 
 // ==========================================
-// 8. AKTARIMI BAŞLATMA VE KUYRUK MOTORU (STABİL)
+// 8. AKTARIM MOTORU
 // ==========================================
 function startTransfer() {
     if (fileQueue.length === 0 || isTransferring) return;
@@ -283,7 +360,6 @@ function startTransfer() {
 
     statusText.innerText = "BeamO Aktarımı Hazırlanıyor...";
     
-    // Gönderici manifestoyu yollar (Alıcı bunu alınca 'ready_for_next' diyecek)
     dataChannel.send(JSON.stringify({ 
         type: 'manifest', 
         totalFiles: fileQueue.length, 
@@ -298,24 +374,24 @@ function sendNextFile() {
         isTransferring = false;
         fileQueue = []; 
         updateVitrinUI();
-        btnSelectFile.classList.remove('hidden');
+        btnSelectFile.classList.remove('hidden'); // Tekrar dosya seçilebilmesi için görünür yap
         return; 
     }
 
     const file = fileQueue[currentFileIndex];
     statusText.innerText = `${file.name} gönderiliyor (${currentFileIndex + 1}/${fileQueue.length})`;
 
+    // Alıcıya MIME type da gönderiyoruz ki medyaları tanısın
     dataChannel.send(JSON.stringify({
         type: 'start_file',
         name: file.name,
-        size: file.size
+        size: file.size,
+        mimeType: file.type
     }));
 
-    // Tarayıcı çökmesini engellemek için parça boyutu 16KB
     const chunkSize = 16384; 
     let offset = 0;
     let lastProgress = 0; 
-    
     dataChannel.bufferedAmountLowThreshold = 262144; 
 
     const fileReader = new FileReader();
@@ -356,7 +432,7 @@ function sendNextFile() {
             }
         } catch (err) {
             console.error("Gönderim motoru hata verdi:", err);
-            statusText.innerText = "Hata: Bağlantı koptu veya limit aşıldı.";
+            statusText.innerText = "Hata: Bağlantı koptu.";
         }
     };
 
@@ -380,6 +456,12 @@ function setupRealtimeListener() {
 async function handleIncomingSignal(payload) {
     const msg = payload.new;
     if (msg.sender_id === localSenderId) return;
+
+    // EĞER BAĞLANTI ZATEN KURULU YSA YENİ KATILIMLARI (3.KİŞİLERİ) REDDET
+    if (isConnected && msg.message_type === 'join') {
+        console.warn("Bağlantı dolu, 3. kişi reddedildi.");
+        return; 
+    }
 
     if (msg.message_type === 'join') {
         statusText.innerText = "Alıcı cihaz bulundu, BeamO kuruluyor...";

@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BeamoDrop | Güvenli Transfer</title>
+    <title>BeamoDrop | Cihazdan Cihaza Güvenli Transfer</title>
     <link rel="stylesheet" href="style.css">
-    
+
+    <!-- Tipografi: Space Grotesk (başlık) · Inter (gövde) · JetBrains Mono (veri/durum) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- QR Kod Oluşturucu CDN -->
@@ -18,20 +23,37 @@
     <div class="app-container">
         <header class="app-header">
             <div class="logo">
-                <span class="icon">🚀</span>
-                <h1>BeamoDrop</h1>
+                <!-- Signature mark: iki düğüm arasında akan foton hattı —
+                     eşleştirme (QR), bağlantı (WebRTC) ve aktarımı (dosya)
+                     tek bir görsel motifte birleştirir. -->
+                <svg class="mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="BeamoDrop">
+                    <defs>
+                        <linearGradient id="beamGrad" x1="4" y1="30" x2="36" y2="10" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#5eead4"/>
+                            <stop offset="1" stop-color="#a78bfa"/>
+                        </linearGradient>
+                    </defs>
+                    <path class="beam-line" d="M9 28 L31 12" stroke="url(#beamGrad)" stroke-width="2" stroke-linecap="round"/>
+                    <polygon class="node node-a" points="9,20 15.3,23.6 15.3,30.9 9,34.5 2.7,30.9 2.7,23.6"
+                             fill="#0b111d" stroke="#5eead4" stroke-width="1.6"/>
+                    <circle cx="9" cy="27.2" r="2.4" fill="#5eead4"/>
+                    <polygon class="node node-b" points="31,5.5 37.3,9.1 37.3,16.4 31,20 24.7,16.4 24.7,9.1"
+                             fill="#0b111d" stroke="#a78bfa" stroke-width="1.6"/>
+                    <circle cx="31" cy="12.7" r="2.4" fill="#a78bfa"/>
+                </svg>
+                <h1>Beamo<span>Drop</span></h1>
             </div>
-            <p>Uçtan uca şifreli, kayıpsız P2P dosya paylaşımı.</p>
+            <p class="eyebrow"><span class="dot"></span>P2P &middot; UÇTAN UCA ŞİFRELİ &middot; SUNUCUDA İZ BIRAKMAZ</p>
         </header>
 
         <main class="card-glass">
             <!-- Ana Butonlar -->
             <div class="action-buttons">
                 <button id="btn-send" class="btn primary-blue">
-                    <span class="btn-text">BeamO Gönder</span>
+                    <span class="btn-text">Dosya Gönder</span>
                 </button>
                 <button id="btn-receive" class="btn outline-blue">
-                    <span class="btn-text">QR Tara & Al</span>
+                    <span class="btn-text">QR Tara &amp; Al</span>
                 </button>
             </div>
 
@@ -45,23 +67,23 @@
                 </div>
 
                 <input type="file" id="file-input" class="hidden" multiple>
-                
-                <!-- YENİ: Seçilen Dosyaların Vitrini -->
+
+                <!-- Seçilen Dosyaların Vitrini -->
                 <div id="staging-area" class="hidden staging-container">
                     <div class="staging-header">
                         <span>Seçilen Dosyalar</span>
                         <span id="file-count-badge" class="badge">0</span>
                     </div>
                     <div id="file-list" class="file-grid"></div>
-                    <button id="btn-start-transfer" class="btn primary-blue mt-2 animate-pulse">BeamO Aktarımını Başlat</button>
+                    <button id="btn-start-transfer" class="btn primary-blue mt-2 animate-pulse">Aktarımı Başlat</button>
                 </div>
 
-                <button id="btn-select-file" class="btn outline-blue mt-2 hidden">Dosya Ekle</button>
+                <button id="btn-select-file" class="btn outline-blue mt-2 hidden">Dosya Seç</button>
             </div>
 
             <!-- Alıcı Ekranı -->
             <div id="receiver-section" class="hidden section">
-                <p class="subtitle">Kamerayı QR Koda Hizalayın</p>
+                <p class="subtitle">Kamerayı QR koda hizalayın</p>
                 <div id="qr-reader" class="scanner-box"></div>
             </div>
 
@@ -76,6 +98,8 @@
                 </div>
             </div>
         </main>
+
+        <p class="footnote">HİÇBİR DOSYA SUNUCUYA YÜKLENMEZ &mdash; WEBRTC ÜZERİNDEN DOĞRUDAN AKTARIM</p>
     </div>
 
     <script src="app.js"></script>

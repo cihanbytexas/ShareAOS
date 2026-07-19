@@ -1,10 +1,5 @@
 /* ==========================================
    BEAMODROP — DESIGN TOKENS
-   Signature: the "photon beam" — a traveling
-   gradient pulse that appears in the mark, the
-   connection state, and the transfer progress
-   bar. One motif, three moments: pair, link,
-   send.
 ========================================== */
 :root {
     --void:        #04060c;
@@ -60,6 +55,8 @@ body {
 .app-container {
     width: 100%;
     max-width: 460px;
+    position: relative;
+    z-index: 10;
 }
 
 /* ==========================================
@@ -225,13 +222,155 @@ body {
     transform: translateY(-1px);
 }
 
+/* Kırmızı (Tehlike/İptal) Buton */
+.btn-danger {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+}
+.btn-danger:hover {
+    background: rgba(248, 113, 113, 0.2);
+    border-color: var(--danger);
+}
+
 /* ==========================================
-   QR AREA
+   RADAR UI (BeamoAir)
+========================================== */
+.radar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+/* Scrollbar özelleştirmesi */
+.radar-container::-webkit-scrollbar { width: 4px; }
+.radar-container::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
+
+.radar-item {
+    background: var(--surface-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+.radar-item:hover {
+    border-color: var(--photon-cyan);
+    background: rgba(94, 234, 212, 0.03);
+}
+
+.radar-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+}
+.radar-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--photon-cyan);
+}
+.radar-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-hi);
+}
+.radar-status {
+    font-size: 0.7rem;
+    color: var(--photon-cyan);
+    font-family: var(--font-mono);
+}
+
+.radar-item button {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    border-radius: 20px;
+    background: var(--photon-cyan);
+    color: #000;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+.radar-item button:hover {
+    transform: scale(1.05);
+}
+
+/* ==========================================
+   MODAL OVERLAY (Pop-up)
+========================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(4, 6, 12, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.modal-box {
+    width: 100%;
+    max-width: 340px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: modal-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-icon-wrapper {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    margin-bottom: 1rem;
+}
+.modal-icon-wrapper.wait {
+    background: rgba(94, 234, 212, 0.1);
+    color: var(--photon-cyan);
+    animation: pulse 2s infinite;
+}
+.modal-icon-wrapper.request {
+    background: rgba(167, 139, 250, 0.1);
+    color: var(--photon-violet);
+}
+.modal-icon-wrapper.reject {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--danger);
+}
+.modal-actions {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    margin-top: 1.5rem;
+}
+
+/* ==========================================
+   QR AREA & STAGING
 ========================================== */
 .qr-box .subtitle {
     margin-bottom: 1.2rem;
 }
-
 .canvas-wrapper {
     background: #ffffff;
     padding: 16px;
@@ -240,7 +379,6 @@ body {
     box-shadow: 0 16px 34px -10px rgba(0, 0, 0, 0.45);
     position: relative;
 }
-
 .canvas-wrapper::after {
     content: "";
     position: absolute;
@@ -249,7 +387,6 @@ body {
     border: 1px solid rgba(94, 234, 212, 0.5);
     pointer-events: none;
 }
-
 .scanner-box {
     border-radius: var(--radius-md);
     overflow: hidden;
@@ -257,16 +394,12 @@ body {
     box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.08);
 }
 
-/* ==========================================
-   STAGING (SELECTED FILES) AREA
-========================================== */
 .staging-container {
     background: rgba(0, 0, 0, 0.22);
     border: 1px dashed var(--line-strong);
     border-radius: var(--radius-md);
     padding: 1.35rem 1.1rem;
 }
-
 .staging-header {
     display: flex;
     justify-content: space-between;
@@ -280,7 +413,6 @@ body {
     padding-bottom: 0.6rem;
     border-bottom: 1px solid var(--line);
 }
-
 .badge {
     background: linear-gradient(100deg, var(--photon-cyan), var(--photon-violet));
     color: #04060c;
@@ -290,13 +422,11 @@ body {
     font-weight: 700;
     font-family: var(--font-mono);
 }
-
 .file-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 10px;
 }
-
 .file-item {
     position: relative;
     background: var(--surface-3);
@@ -310,12 +440,10 @@ body {
     gap: 4px;
     transition: transform 0.18s ease, border-color 0.18s ease;
 }
-
 .file-item:hover {
     transform: translateY(-2px);
     border-color: var(--photon-cyan);
 }
-
 .file-ext {
     font-family: var(--font-mono);
     font-weight: 700;
@@ -323,13 +451,11 @@ body {
     letter-spacing: 0.02em;
     color: var(--photon-cyan);
 }
-
 .file-size {
     font-family: var(--font-mono);
     font-size: 0.64rem;
     color: var(--text-lo);
 }
-
 .btn-remove {
     position: absolute;
     top: -6px;
@@ -349,7 +475,6 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     transition: background 0.15s ease, color 0.15s ease;
 }
-
 .btn-remove:hover {
     background: var(--danger);
     color: var(--void);
@@ -364,7 +489,6 @@ body {
     padding: 16px;
     border-radius: var(--radius-md);
 }
-
 .progress-info {
     display: flex;
     justify-content: space-between;
@@ -373,19 +497,16 @@ body {
     color: var(--text-lo);
     margin-bottom: 10px;
 }
-
 #status-text {
     font-family: var(--font-body);
     color: var(--text-hi);
     font-weight: 500;
 }
-
 #progress-percentage {
     font-family: var(--font-mono);
     color: var(--photon-cyan);
     font-weight: 600;
 }
-
 .progress-bar {
     width: 100%;
     height: 7px;
@@ -394,7 +515,6 @@ body {
     overflow: hidden;
     position: relative;
 }
-
 .progress-fill {
     position: relative;
     height: 100%;
@@ -405,14 +525,10 @@ body {
     box-shadow: 0 0 12px rgba(94, 234, 212, 0.55);
     overflow: hidden;
 }
-
-/* traveling photon shimmer inside the active fill */
 .progress-fill::after {
     content: "";
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 40%;
+    top: 0; bottom: 0; width: 40%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
     animation: photon-travel 1.3s linear infinite;
 }
@@ -421,76 +537,34 @@ body {
     from { transform: translateX(-120%); }
     to   { transform: translateX(280%); }
 }
-
 .animate-pulse {
     animation: pulse 2.2s infinite;
 }
-
 @keyframes pulse {
     0%   { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.35); }
     70%  { box-shadow: 0 0 0 12px rgba(94, 234, 212, 0); }
     100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); }
 }
-
-/* ==========================================
-   LOGO MARK ANIMATION
-========================================== */
 .mark .beam-line {
     stroke-dasharray: 6 5;
     animation: beam-flow 1.8s linear infinite;
 }
-
 @keyframes beam-flow {
     to { stroke-dashoffset: -22; }
 }
-
 .mark .node {
     animation: node-glow 2.6s ease-in-out infinite;
 }
-
 .mark .node.node-b {
     animation-delay: 1.3s;
 }
-
 @keyframes node-glow {
     0%, 100% { opacity: 0.55; }
     50%      { opacity: 1; }
 }
 
 /* ==========================================
-   FOOTNOTE
-========================================== */
-.footnote {
-    text-align: center;
-    margin-top: 1.4rem;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.04em;
-    color: var(--text-faint);
-}
-
-/* ==========================================
-   RESPONSIVE + MOTION PREFERENCES
-========================================== */
-@media (max-width: 380px) {
-    .card-glass {
-        padding: 1.6rem 1.3rem;
-    }
-    .logo h1 {
-        font-size: 1.55rem;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .animate-pulse,
-    .progress-fill::after,
-    .mark .beam-line,
-    .mark .node {
-        animation: none !important;
-    }
-}
-/* ==========================================
-   YENİ EKLENEN MEDYA VE GALERİ STİLLERİ
+   MEDYA VE GALERİ STİLLERİ
 ========================================== */
 .media-preview {
     width: 100%;
@@ -500,7 +574,6 @@ body {
     margin-bottom: 4px;
     background-color: var(--void);
 }
-
 .received-item {
     background: var(--surface-3);
     border: 1px solid var(--line);
@@ -510,7 +583,6 @@ body {
     flex-direction: column;
     gap: 0.5rem;
 }
-
 .received-media {
     width: 100%;
     max-height: 300px;
@@ -518,9 +590,7 @@ body {
     object-fit: contain;
     background: #000;
 }
-
 .received-audio {
     width: 100%;
     height: 40px;
 }
-

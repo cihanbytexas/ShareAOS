@@ -145,6 +145,20 @@ function setupWebRTC() {
         btnSelectFile.classList.remove('hidden'); 
     };
 
+    // KRİTİK HATA ÇÖZÜMÜ: Göndericinin, Alıcıdan gelen yanıtları duyabilmesi için dinleyici eklendi.
+    dataChannel.onmessage = (e) => {
+        if (typeof e.data === 'string') {
+            const data = JSON.parse(e.data);
+            if (data.type === 'file_received_ack') {
+                currentFileIndex++;
+                sendNextFile(); // Önceki dosya bitti, sonrakine geç
+            }
+            else if (data.type === 'ready_for_next') {
+                 sendNextFile(); // Alıcı manifesto'yu okudu ve hazır, ilk dosyayı yolla
+            }
+        }
+    };
+
     let receivedBuffers = [];
     let expectedFileSize = 0;
     let receivedSize = 0;
@@ -155,12 +169,13 @@ function setupWebRTC() {
         receiveChannel.binaryType = "arraybuffer";
         
         receiveChannel.onmessage = (e) => {
-            // METİN SİNYALLERİ
+            // METİN SİNYALLERİ (Alıcı Tarafı)
             if (typeof e.data === 'string') {
                 const data = JSON.parse(e.data);
                 
                 if (data.type === 'manifest') {
                     statusText.innerText = `Gelen BeamO: ${data.totalFiles} Dosya`;
+                    // Alıcı hazır olduğunu göndericiye bildirir
                     receiveChannel.send(JSON.stringify({ type: 'ready_for_next' }));
                 }
                 else if (data.type === 'start_file') {
@@ -171,13 +186,6 @@ function setupWebRTC() {
                     statusText.innerText = `İndiriliyor: ${fileName}`;
                     progressFill.style.width = "0%";
                     progressPercentage.innerText = "0%";
-                }
-                else if (data.type === 'file_received_ack') {
-                    currentFileIndex++;
-                    sendNextFile(); 
-                }
-                else if (data.type === 'ready_for_next') {
-                     sendNextFile(); 
                 }
                 return;
             }
@@ -199,6 +207,7 @@ function setupWebRTC() {
                 downloadLink.download = fileName;
                 downloadLink.click();
                 
+                // Alıcı, dosyayı indirdiğini göndericiye onaylar (ACK)
                 receiveChannel.send(JSON.stringify({ type: 'file_received_ack' }));
             }
         };
@@ -229,7 +238,6 @@ function updateVitrinUI() {
     if (!fileListContainer) return;
     fileListContainer.innerHTML = '';
     
-    // Yeni tasarıma uyumlu class'lar
     fileQueue.forEach((file, index) => {
         const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
         
@@ -256,7 +264,7 @@ function updateVitrinUI() {
 }
 
 // ==========================================
-// 8. AKTARIMI BAŞLATMA VE KUYRUK MOTORU (16KB LİMİTLİ STABİL VERSİYON)
+// 8. AKTARIMI BAŞLATMA VE KUYRUK MOTORU (STABİL)
 // ==========================================
 function startTransfer() {
     if (fileQueue.length === 0 || isTransferring) return;
@@ -274,6 +282,8 @@ function startTransfer() {
     }));
 
     statusText.innerText = "BeamO Aktarımı Hazırlanıyor...";
+    
+    // Gönderici manifestoyu yollar (Alıcı bunu alınca 'ready_for_next' diyecek)
     dataChannel.send(JSON.stringify({ 
         type: 'manifest', 
         totalFiles: fileQueue.length, 
@@ -301,12 +311,11 @@ function sendNextFile() {
         size: file.size
     }));
 
-    // KRİTİK GÜNCELLEME: Çökmeyi engellemek için parça boyutu 16KB yapıldı
+    // Tarayıcı çökmesini engellemek için parça boyutu 16KB
     const chunkSize = 16384; 
     let offset = 0;
     let lastProgress = 0; 
     
-    // Tarayıcı buffer'ı 256KB'ı geçerse fren yapıp dinlenmesi için threshold koyduk
     dataChannel.bufferedAmountLowThreshold = 262144; 
 
     const fileReader = new FileReader();
@@ -318,7 +327,6 @@ function sendNextFile() {
     };
 
     fileReader.onload = e => {
-        // Tünel tıkanmak üzereyse, biraz boşalmasını bekle
         if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
             dataChannel.addEventListener('bufferedamountlow', function listener() {
                 dataChannel.removeEventListener('bufferedamountlow', listener);
@@ -334,7 +342,6 @@ function sendNextFile() {
             dataChannel.send(data);
             offset += data.byteLength;
 
-            // DOM'u yormamak için sadece her %1'lik artışta arayüzü güncelle
             const currentProgress = Math.floor((offset / totalSize) * 100);
             if (currentProgress > lastProgress) {
                 progressFill.style.width = currentProgress + "%";

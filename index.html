@@ -17,7 +17,7 @@
 <body>
 
     <div class="app-container">
-        <!-- YENİ: Geri Dön / İptal Butonu -->
+        <!-- Geri Dön / İptal Butonu -->
         <button id="btn-back" class="btn outline-blue hidden" style="margin-bottom: 1rem; width: auto; padding: 0.5rem 1rem; font-size: 0.85rem;">
             ← Bağlantıyı Kes
         </button>
@@ -39,14 +39,35 @@
                 </svg>
                 <h1>Beamo<span>Drop</span></h1>
             </div>
-            <p class="eyebrow"><span class="dot"></span>P2P &middot; UÇTAN UCA ŞİFRELİ &middot; SUNUCUDA İZ BIRAKMAZ</p>
+            <p class="eyebrow"><span class="dot"></span>P2P &middot; UÇTAN UCA ŞİFRELİ</p>
         </header>
 
         <main class="card-glass">
             <!-- Ana Butonlar -->
             <div id="action-buttons" class="action-buttons">
-                <button id="btn-send" class="btn primary-blue">Dosya Gönder</button>
-                <button id="btn-receive" class="btn outline-blue">QR Tara &amp; Al</button>
+                <button id="btn-send" class="btn outline-blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    Uzak Dosya Gönder (QR)
+                </button>
+                <button id="btn-receive" class="btn outline-blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="8" y1="12" x2="16" y2="12"></line><line x1="12" y1="8" x2="12" y2="16"></line></svg>
+                    Uzak Dosya Al (QR)
+                </button>
+                <button id="btn-beamoair" class="btn primary-blue mt-2" style="padding: 1.2rem 1rem;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"></path><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+                    BeamoAir (Aynı Ağ Radarı)
+                </button>
+            </div>
+
+            <!-- BeamoAir Radar Ekranı -->
+            <div id="beamoair-section" class="hidden section">
+                <div class="staging-header" style="justify-content: center; border-bottom: none; margin-bottom: 0;">
+                    <span style="font-size: 0.9rem; color: var(--photon-cyan);">📡 Çevredeki Cihazlar Taranıyor...</span>
+                </div>
+                <p class="subtitle" style="font-size: 0.75rem; margin-top: 5px;">Aynı Wi-Fi ağına bağlı cihazlar burada listelenir.</p>
+                <div id="radar-list" class="radar-container mt-2">
+                    <!-- Dinamik Liste Buraya Gelecek -->
+                </div>
             </div>
 
             <!-- Gönderici Ekranı -->
@@ -80,7 +101,7 @@
                     <div id="qr-reader" class="scanner-box"></div>
                 </div>
 
-                <!-- YENİ: Alınan Dosyalar Galerisi -->
+                <!-- Alınan Dosyalar Galerisi -->
                 <div id="received-gallery" class="hidden staging-container mt-2">
                     <div class="staging-header">
                         <span>Gelen Dosyalar</span>
@@ -100,6 +121,13 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Onay/Red Modalı (Pop-up) -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="modal-content" class="modal-box card-glass">
+            <!-- Modal içeriği JavaScript ile dinamik olarak doldurulacak -->
+        </div>
     </div>
 
     <script src="app.js"></script>

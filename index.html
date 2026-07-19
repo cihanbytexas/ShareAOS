@@ -6,27 +6,25 @@
     <title>BeamoDrop | Cihazdan Cihaza Güvenli Transfer</title>
     <link rel="stylesheet" href="style.css">
 
-    <!-- Tipografi: Space Grotesk (başlık) · Inter (gövde) · JetBrains Mono (veri/durum) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- QR Kod Oluşturucu CDN -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    <!-- QR Kod Okuyucu (Kamera) CDN -->
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
 
     <div class="app-container">
+        <!-- YENİ: Geri Dön / İptal Butonu -->
+        <button id="btn-back" class="btn outline-blue hidden" style="margin-bottom: 1rem; width: auto; padding: 0.5rem 1rem; font-size: 0.85rem;">
+            ← Bağlantıyı Kes
+        </button>
+
         <header class="app-header">
             <div class="logo">
-                <!-- Signature mark: iki düğüm arasında akan foton hattı —
-                     eşleştirme (QR), bağlantı (WebRTC) ve aktarımı (dosya)
-                     tek bir görsel motifte birleştirir. -->
-                <svg class="mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="BeamoDrop">
+                <svg class="mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="beamGrad" x1="4" y1="30" x2="36" y2="10" gradientUnits="userSpaceOnUse">
                             <stop offset="0" stop-color="#5eead4"/>
@@ -34,11 +32,9 @@
                         </linearGradient>
                     </defs>
                     <path class="beam-line" d="M9 28 L31 12" stroke="url(#beamGrad)" stroke-width="2" stroke-linecap="round"/>
-                    <polygon class="node node-a" points="9,20 15.3,23.6 15.3,30.9 9,34.5 2.7,30.9 2.7,23.6"
-                             fill="#0b111d" stroke="#5eead4" stroke-width="1.6"/>
+                    <polygon class="node node-a" points="9,20 15.3,23.6 15.3,30.9 9,34.5 2.7,30.9 2.7,23.6" fill="#0b111d" stroke="#5eead4" stroke-width="1.6"/>
                     <circle cx="9" cy="27.2" r="2.4" fill="#5eead4"/>
-                    <polygon class="node node-b" points="31,5.5 37.3,9.1 37.3,16.4 31,20 24.7,16.4 24.7,9.1"
-                             fill="#0b111d" stroke="#a78bfa" stroke-width="1.6"/>
+                    <polygon class="node node-b" points="31,5.5 37.3,9.1 37.3,16.4 31,20 24.7,16.4 24.7,9.1" fill="#0b111d" stroke="#a78bfa" stroke-width="1.6"/>
                     <circle cx="31" cy="12.7" r="2.4" fill="#a78bfa"/>
                 </svg>
                 <h1>Beamo<span>Drop</span></h1>
@@ -48,18 +44,14 @@
 
         <main class="card-glass">
             <!-- Ana Butonlar -->
-            <div class="action-buttons">
-                <button id="btn-send" class="btn primary-blue">
-                    <span class="btn-text">Dosya Gönder</span>
-                </button>
-                <button id="btn-receive" class="btn outline-blue">
-                    <span class="btn-text">QR Tara &amp; Al</span>
-                </button>
+            <div id="action-buttons" class="action-buttons">
+                <button id="btn-send" class="btn primary-blue">Dosya Gönder</button>
+                <button id="btn-receive" class="btn outline-blue">QR Tara &amp; Al</button>
             </div>
 
             <!-- Gönderici Ekranı -->
             <div id="sender-section" class="hidden section">
-                <div class="qr-box">
+                <div id="qr-box" class="qr-box">
                     <p class="subtitle">Alıcı cihazdan bu QR kodu okutun</p>
                     <div class="canvas-wrapper">
                         <canvas id="qr-canvas"></canvas>
@@ -68,26 +60,36 @@
 
                 <input type="file" id="file-input" class="hidden" multiple>
 
-                <!-- Seçilen Dosyaların Vitrini -->
-                <div id="staging-area" class="hidden staging-container">
+                <!-- Seçilen Dosyalar -->
+                <div id="staging-area" class="hidden staging-container mt-2">
                     <div class="staging-header">
-                        <span>Seçilen Dosyalar</span>
+                        <span>Gönderilecekler</span>
                         <span id="file-count-badge" class="badge">0</span>
                     </div>
                     <div id="file-list" class="file-grid"></div>
                     <button id="btn-start-transfer" class="btn primary-blue mt-2 animate-pulse">Aktarımı Başlat</button>
                 </div>
 
-                <button id="btn-select-file" class="btn outline-blue mt-2 hidden">Dosya Seç</button>
+                <button id="btn-select-file" class="btn outline-blue mt-2 hidden">Daha Fazla Dosya Seç</button>
             </div>
 
             <!-- Alıcı Ekranı -->
             <div id="receiver-section" class="hidden section">
-                <p class="subtitle">Kamerayı QR koda hizalayın</p>
-                <div id="qr-reader" class="scanner-box"></div>
+                <div id="scanner-container">
+                    <p class="subtitle">Kamerayı QR koda hizalayın</p>
+                    <div id="qr-reader" class="scanner-box"></div>
+                </div>
+
+                <!-- YENİ: Alınan Dosyalar Galerisi -->
+                <div id="received-gallery" class="hidden staging-container mt-2">
+                    <div class="staging-header">
+                        <span>Gelen Dosyalar</span>
+                    </div>
+                    <div id="received-list" class="file-grid" style="grid-template-columns: 1fr; gap: 1rem;"></div>
+                </div>
             </div>
 
-            <!-- İlerleme Çubuğu -->
+            <!-- Ortak İlerleme Çubuğu -->
             <div id="progress-container" class="hidden mt-2 progress-wrapper">
                 <div class="progress-info">
                     <span id="status-text">Bağlantı bekleniyor...</span>
@@ -98,8 +100,6 @@
                 </div>
             </div>
         </main>
-
-        <p class="footnote">HİÇBİR DOSYA SUNUCUYA YÜKLENMEZ &mdash; WEBRTC ÜZERİNDEN DOĞRUDAN AKTARIM</p>
     </div>
 
     <script src="app.js"></script>

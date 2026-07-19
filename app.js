@@ -229,7 +229,7 @@ function updateVitrinUI() {
     if (!fileListContainer) return;
     fileListContainer.innerHTML = '';
     
-    // Yeni tasarıma uyumlu class'lar eklendi
+    // Yeni tasarıma uyumlu class'lar
     fileQueue.forEach((file, index) => {
         const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
         
@@ -256,7 +256,7 @@ function updateVitrinUI() {
 }
 
 // ==========================================
-// 8. AKTARIMI BAŞLATMA VE KUYRUK MOTORU
+// 8. AKTARIMI BAŞLATMA VE KUYRUK MOTORU (16KB LİMİTLİ STABİL VERSİYON)
 // ==========================================
 function startTransfer() {
     if (fileQueue.length === 0 || isTransferring) return;
@@ -301,10 +301,13 @@ function sendNextFile() {
         size: file.size
     }));
 
-    const chunkSize = 65536; 
+    // KRİTİK GÜNCELLEME: Çökmeyi engellemek için parça boyutu 16KB yapıldı
+    const chunkSize = 16384; 
     let offset = 0;
     let lastProgress = 0; 
-    dataChannel.bufferedAmountLowThreshold = 1024 * 1024; 
+    
+    // Tarayıcı buffer'ı 256KB'ı geçerse fren yapıp dinlenmesi için threshold koyduk
+    dataChannel.bufferedAmountLowThreshold = 262144; 
 
     const fileReader = new FileReader();
     fileReader.onerror = error => console.error('Dosya okuma hatası:', error);
@@ -315,6 +318,7 @@ function sendNextFile() {
     };
 
     fileReader.onload = e => {
+        // Tünel tıkanmak üzereyse, biraz boşalmasını bekle
         if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
             dataChannel.addEventListener('bufferedamountlow', function listener() {
                 dataChannel.removeEventListener('bufferedamountlow', listener);
@@ -326,20 +330,26 @@ function sendNextFile() {
     };
 
     const sendAndContinue = (data, totalSize) => {
-        dataChannel.send(data);
-        offset += data.byteLength;
+        try {
+            dataChannel.send(data);
+            offset += data.byteLength;
 
-        const currentProgress = Math.floor((offset / totalSize) * 100);
-        if (currentProgress > lastProgress) {
-            progressFill.style.width = currentProgress + "%";
-            progressPercentage.innerText = currentProgress + "%";
-            lastProgress = currentProgress;
-        }
+            // DOM'u yormamak için sadece her %1'lik artışta arayüzü güncelle
+            const currentProgress = Math.floor((offset / totalSize) * 100);
+            if (currentProgress > lastProgress) {
+                progressFill.style.width = currentProgress + "%";
+                progressPercentage.innerText = currentProgress + "%";
+                lastProgress = currentProgress;
+            }
 
-        if (offset < totalSize) {
-            readSlice(offset);
-        } else {
-            statusText.innerText = `Bekleniyor... (${currentFileIndex + 1}/${fileQueue.length})`;
+            if (offset < totalSize) {
+                readSlice(offset);
+            } else {
+                statusText.innerText = `Alıcının dosyayı kaydetmesi bekleniyor...`;
+            }
+        } catch (err) {
+            console.error("Gönderim motoru hata verdi:", err);
+            statusText.innerText = "Hata: Bağlantı koptu veya limit aşıldı.";
         }
     };
 

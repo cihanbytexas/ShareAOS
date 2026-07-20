@@ -88,7 +88,7 @@ let currentRoomId = null;
 let html5QrCode = null;
 
 // ==========================================
-// 4. TEMEL BUTON OLAYLARI VE YENİ RESET (BAĞLANTIYI KES) LOGIC
+// 4. TEMEL BUTON OLAYLARI VE YENİ RESET LOGİC
 // ==========================================
 btnSend.addEventListener('click', () => { activateSenderMode(); createRoomAndGenerateQR(); });
 btnReceive.addEventListener('click', () => { activateReceiverMode(); startQRScanner(); });
@@ -99,7 +99,7 @@ btnBeamoAir.addEventListener('click', () => {
 btnSelectFile.addEventListener('click', () => { if (dataChannel && dataChannel.readyState === 'open') { fileInput.click(); }});
 btnStartTransfer.addEventListener('click', startTransfer);
 
-// Bağlantıyı Kes Butonu
+// Bağlantıyı Kes / Geri Butonu
 btnBack.addEventListener('click', () => {
     // 1. Karşı tarafa bağlantıyı kestiğimizi kibarca bildiriyoruz (Eğer kanal açıksa)
     if (dataChannel && dataChannel.readyState === 'open') {
@@ -121,7 +121,7 @@ function activateReceiverMode(hideScanner = false) {
     if(hideScanner) scannerContainer.classList.add('hidden'); else scannerContainer.classList.remove('hidden');
 }
 
-// YENİ VE HATASIZ SIFIRLAMA FONKSİYONU
+// HATASIZ SIFIRLAMA FONKSİYONU
 function resetApp() {
     // RAM Temizliği (Önceki medyaların bellekte yer tutmasını engeller)
     activeObjectUrls.forEach(url => URL.revokeObjectURL(url));
@@ -163,7 +163,7 @@ function resetApp() {
     stagingArea.classList.add('hidden');
     fileListContainer.innerHTML = '';
     btnStartTransfer.classList.remove('hidden');
-    btnSelectFile.classList.add('hidden'); // Yeni eklendi: Dosya ekle butonunu gizle
+    btnSelectFile.classList.add('hidden');
     
     qrBox.classList.remove('hidden');
     scannerContainer.classList.remove('hidden');
@@ -172,23 +172,50 @@ function resetApp() {
     receivedList.innerHTML = '';
 }
 
-// KARŞI TARAF BAĞLANTIYI KESTİĞİNDE ÇALIŞACAK FONKSİYON
+// KARŞI TARAF BAĞLANTIYI KESTİĞİNDE ÇALIŞACAK KORUMALI FONKSİYON
 function handleRemoteDisconnect() {
     if (!isConnected) return; // Zaten kopuksa işlem yapma
     
-    // Arkadan sistemi sessizce sıfırla ama kullanıcıya mesajı göster
-    resetApp();
-    
-    showModal(`
-        <div class="modal-icon-wrapper reject">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
-        </div>
-        <h3 style="margin-bottom: 8px;">Bağlantı Koptu</h3>
-        <p style="color: var(--text-lo); font-size: 0.9rem;">Karşı cihaz bağlantıyı sonlandırdı veya internetten düştü.</p>
-        <div class="modal-actions">
-            <button class="btn primary-blue" onclick="closeModal()">Ana Menüye Dön</button>
-        </div>
-    `);
+    // Ekranda indirilmek üzere bekleyen (alınmış) dosya var mı kontrol et
+    const hasReceivedFiles = receivedList && receivedList.children.length > 0;
+
+    if (hasReceivedFiles) {
+        // 1. DURUM: DOSYALAR ALINMIŞ
+        // Sadece arka planda WebRTC bağlantılarını kapat. 
+        // Arayüzü (galeriyi) ve RAM'i SİLME!
+        isConnected = false;
+        try { if (dataChannel) { dataChannel.close(); dataChannel = null; } } catch(e) {}
+        try { if (peerConnection) { peerConnection.close(); peerConnection = null; } } catch(e) {}
+        
+        statusText.innerText = "Gönderici ayrıldı. Dosyalarınızı indirebilirsiniz.";
+        
+        // Kullanıcıya ekranı sıfırlamadan bilgi veriyoruz
+        showModal(`
+            <div class="modal-icon-wrapper" style="background: rgba(94, 234, 212, 0.1); color: var(--primary, #5eead4); padding: 15px; border-radius: 50%; display: inline-block; margin-bottom: 15px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <h3 style="margin-bottom: 8px;">Gönderici Ayrıldı</h3>
+            <p style="color: var(--text-lo); font-size: 0.9rem;">Karşı cihaz bağlantıyı kesti. Ancak aktarılan dosyalar belleğe alındı, işlemlerinize devam edebilirsiniz.</p>
+            <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
+                <button class="btn primary-blue" onclick="closeModal()">İndirmeye Devam Et</button>
+                <button class="btn outline-blue" onclick="resetApp(); closeModal();">Ana Menüye Dön</button>
+            </div>
+        `);
+    } else {
+        // 2. DURUM: ORTADA DOSYA YOK
+        // Hiç dosya gelmediği için komple her şeyi sıfırla
+        resetApp();
+        showModal(`
+            <div class="modal-icon-wrapper reject">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+            </div>
+            <h3 style="margin-bottom: 8px;">Bağlantı Koptu</h3>
+            <p style="color: var(--text-lo); font-size: 0.9rem;">Karşı cihaz bağlantıyı sonlandırdı veya internetten düştü.</p>
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button class="btn primary-blue" onclick="closeModal()">Ana Menüye Dön</button>
+            </div>
+        `);
+    }
 }
 
 // ==========================================
@@ -221,7 +248,7 @@ async function startBeamoAirRadar() {
                     </div>
                     <h3 style="margin-bottom: 8px;">Bağlantı İsteği</h3>
                     <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${data.senderName}</strong> sana bağlanmak istiyor.</p>
-                    <div class="modal-actions">
+                    <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
                         <button class="btn btn-danger" onclick="rejectConnection('${data.senderId}')">Vazgeç</button>
                         <button class="btn primary-blue" onclick="acceptConnection('${data.senderId}', '${data.roomId}')">Onayla</button>
                     </div>
@@ -239,7 +266,7 @@ async function startBeamoAirRadar() {
                         </div>
                         <h3 style="margin-bottom: 8px;">Reddedildi</h3>
                         <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${data.senderName}</strong> bağlanmayı reddetti.</p>
-                        <div class="modal-actions">
+                        <div class="modal-actions" style="margin-top: 15px;">
                             <button class="btn outline-blue" onclick="closeModal()">Kapat</button>
                         </div>
                     `);
@@ -295,16 +322,16 @@ function updateRadarUI(presenceState) {
 }
 
 async function sendConnectionRequest(targetPeerId, targetName) {
-    showModal(`<div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div><h3 style="margin-bottom: 8px;">Bağlanılıyor...</h3>`);
+    showModal(`<div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div><h3 style="margin-bottom: 8px;">Bağlanılıyor...</h3>`);
     
     const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
     if (error) return;
     
     showModal(`
-        <div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+        <div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div>
         <h3 style="margin-bottom: 8px;">Onay Bekleniyor</h3>
         <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${targetName}</strong> cihazına istek gönderildi.</p>
-        <div class="modal-actions"><button class="btn outline-blue" onclick="closeModal()">İptal Et</button></div>
+        <div class="modal-actions" style="margin-top: 15px;"><button class="btn outline-blue" onclick="closeModal()">İptal Et</button></div>
     `);
 
     beamoAirChannel.send({

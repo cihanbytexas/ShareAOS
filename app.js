@@ -3,12 +3,12 @@
 // ==========================================
 const btnSend = document.getElementById('btn-send');
 const btnReceive = document.getElementById('btn-receive');
-const btnBeamoAir = document.getElementById('btn-beamoair'); // YENİ: BeamoAir Butonu
+const btnBeamoAir = document.getElementById('btn-beamoair');
 
 const actionButtons = document.getElementById('action-buttons');
 const senderSection = document.getElementById('sender-section');
 const receiverSection = document.getElementById('receiver-section');
-const beamoAirSection = document.getElementById('beamoair-section'); // YENİ: Radar Bölümü
+const beamoAirSection = document.getElementById('beamoair-section');
 const btnBack = document.getElementById('btn-back');
 
 const fileInput = document.getElementById('file-input');
@@ -29,7 +29,7 @@ const fileCountBadge = document.getElementById('file-count-badge');
 const scannerContainer = document.getElementById('scanner-container');
 const receivedGallery = document.getElementById('received-gallery');
 const receivedList = document.getElementById('received-list');
-const radarList = document.getElementById('radar-list'); // YENİ: Radar Listesi Container'ı
+const radarList = document.getElementById('radar-list');
 
 const modalOverlay = document.getElementById('modal-overlay');
 const modalContent = document.getElementById('modal-content');
@@ -42,7 +42,7 @@ let currentFileIndex = 0;
 let isTransferring = false;
 let isConnected = false;
 
-// YENİ: Otomatik Cihaz Adı Bulma (İşletim Sistemi / Tarayıcı)
+// Cihaz Adı Bulma Algoritması
 function getDeviceName() {
     const ua = navigator.userAgent;
     let browser = "Tarayıcı";
@@ -135,6 +135,7 @@ function activateReceiverMode(hideScanner = false) {
     else scannerContainer.classList.remove('hidden');
 }
 
+// HATA ÇÖZÜMÜ: Bağlantıyı Kesme Kapsamlı Hale Getirildi
 function resetApp() {
     if (dataChannel) dataChannel.close();
     if (peerConnection) peerConnection.close();
@@ -142,32 +143,43 @@ function resetApp() {
     
     supabaseClient.removeAllChannels();
     beamoAirChannel = null;
+    currentRoomId = null;
     closeModal();
 
     if (html5QrCode) {
-        html5QrCode.stop().catch(e => console.log("Kamera zaten kapalı."));
+        html5QrCode.stop().catch(e => console.log("Kamera durdurulamadı."));
+        html5QrCode = null;
     }
 
     fileQueue = [];
     isTransferring = false;
     fileInput.value = '';
     
+    // UI Sıfırlama
     actionButtons.classList.remove('hidden');
     senderSection.classList.add('hidden');
     receiverSection.classList.add('hidden');
     beamoAirSection.classList.add('hidden');
     btnBack.classList.add('hidden');
+    
     progressContainer.classList.add('hidden');
+    progressFill.style.width = "0%";
+    progressPercentage.innerText = "0%";
+    statusText.innerText = "Bağlantı bekleniyor...";
+    
     stagingArea.classList.add('hidden');
-    receivedGallery.classList.add('hidden');
+    fileListContainer.innerHTML = '';
+    btnStartTransfer.classList.remove('hidden');
     
     qrBox.classList.remove('hidden');
     scannerContainer.classList.remove('hidden');
+    
+    receivedGallery.classList.add('hidden');
     receivedList.innerHTML = '';
 }
 
 // ==========================================
-// 5. YENİ: BEAMOAIR (WIFI RADARI) MOTORU
+// 5. BEAMOAIR (WIFI RADARI) MOTORU (HATA ÇÖZÜMÜ)
 // ==========================================
 async function startBeamoAirRadar() {
     radarList.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-lo); font-size: 0.85rem;">IP adresi tespit ediliyor... 🔍</div>';
@@ -189,7 +201,6 @@ async function startBeamoAirRadar() {
             updateRadarUI(state);
         });
 
-        // BAĞLANTI İSTEKLERİNİ DİNLEME (El sıkışma)
         beamoAirChannel.on('broadcast', { event: 'connection_request' }, (payload) => {
             const data = payload.payload;
             if (data.targetId === localSenderId) {
@@ -207,7 +218,6 @@ async function startBeamoAirRadar() {
             }
         });
 
-        // ONAY VEYA RED CEVAPLARINI DİNLEME
         beamoAirChannel.on('broadcast', { event: 'connection_response' }, (payload) => {
             const data = payload.payload;
             if (data.targetId === localSenderId) {
@@ -225,7 +235,6 @@ async function startBeamoAirRadar() {
                     `);
                 } else if (data.action === 'accept') {
                     closeModal();
-                    // Gönderici ekranına geç, QR'ı gizle
                     activateSenderMode(true);
                     currentRoomId = data.roomId;
                     statusText.innerText = "BeamO Ağı Kuruluyor...";
@@ -249,7 +258,7 @@ async function startBeamoAirRadar() {
 
     } catch (error) {
         console.error("Radar Hatası:", error);
-        radarList.innerHTML = '<div style="color: var(--danger); text-align:center; padding: 20px;">Bağlantı hatası. Lütfen internetinizi kontrol edin.</div>';
+        radarList.innerHTML = '<div style="color: var(--danger); text-align:center; padding: 20px;">Bağlantı hatası. İnternetinizi kontrol edin.</div>';
     }
 }
 
@@ -265,11 +274,10 @@ function updateRadarUI(presenceState) {
         const item = document.createElement('div');
         item.className = 'radar-item';
         
-        // Cihaz tipine göre icon (Basit kontrol)
-        let iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>`; // Genel cip icon
-        if (userData.device_name.includes('iPhone') || userData.device_name.includes('Android')) {
+        let iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>`;
+        if (userData.device_name.includes('iPhone') || userData.device_name.includes('Android') || userData.device_name.includes('iPad')) {
             iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>`;
-        } else if (userData.device_name.includes('Windows') || userData.device_name.includes('Mac')) {
+        } else if (userData.device_name.includes('Windows') || userData.device_name.includes('Mac') || userData.device_name.includes('Linux')) {
             iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
         }
 
@@ -295,16 +303,31 @@ function updateRadarUI(presenceState) {
     }
 }
 
-// Bağlantı İsteği Atan (Gönderici)
-function sendConnectionRequest(targetPeerId, targetName) {
-    const tempRoomId = 'air_' + Math.random().toString(36).substr(2, 9);
-    
+// KRİTİK HATA ÇÖZÜMÜ: Sinyalleşmenin Tıkanmaması İçin Önce DB'de Gerçek Oda Açılır
+async function sendConnectionRequest(targetPeerId, targetName) {
     showModal(`
         <div class="modal-icon-wrapper wait">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         </div>
         <h3 style="margin-bottom: 8px;">Bağlanılıyor...</h3>
-        <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${targetName}</strong> cihazına istek gönderildi. Onay bekleniyor.</p>
+        <p style="color: var(--text-lo); font-size: 0.9rem;">Oda altyapısı hazırlanıyor...</p>
+    `);
+
+    // Sinyal tablosu hata vermesin diye Supabase'de gerçek bir oda ID'si oluşturuyoruz
+    const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
+    if (error) {
+        showModal(`<h3>Bağlantı Hatası</h3><p>Oda oluşturulamadı.</p><button class="btn outline-blue mt-2" onclick="closeModal()">Kapat</button>`);
+        return;
+    }
+    
+    const realRoomId = data.id;
+
+    showModal(`
+        <div class="modal-icon-wrapper wait">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <h3 style="margin-bottom: 8px;">Onay Bekleniyor</h3>
+        <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${targetName}</strong> cihazına istek gönderildi.</p>
         <div class="modal-actions">
             <button class="btn outline-blue" onclick="closeModal()">İptal Et</button>
         </div>
@@ -317,12 +340,11 @@ function sendConnectionRequest(targetPeerId, targetName) {
             senderId: localSenderId,
             senderName: myDeviceName,
             targetId: targetPeerId,
-            roomId: tempRoomId
+            roomId: realRoomId
         }
     });
 }
 
-// İsteği Kabul Eden (Alıcı)
 function acceptConnection(senderId, roomId) {
     beamoAirChannel.send({
         type: 'broadcast',
@@ -331,12 +353,19 @@ function acceptConnection(senderId, roomId) {
     });
 
     closeModal();
-    // Alıcı ekranına geç, kamerayı gizle
     activateReceiverMode(true);
-    joinRoom(roomId); 
+    currentRoomId = roomId;
+    statusText.innerText = "BeamO Ağı Kuruluyor...";
+    progressContainer.classList.remove('hidden');
+    
+    setupWebRTC();
+    setupRealtimeListener();
+
+    setTimeout(async () => {
+        await sendSignal('join', { message: 'Alıcı katıldı' });
+    }, 1500);
 }
 
-// İsteği Reddeden
 function rejectConnection(senderId) {
     beamoAirChannel.send({
         type: 'broadcast',
@@ -346,7 +375,6 @@ function rejectConnection(senderId) {
     closeModal();
 }
 
-// Modal Kontrolleri
 function showModal(htmlContent) {
     modalContent.innerHTML = htmlContent;
     modalOverlay.classList.remove('hidden');
@@ -392,23 +420,19 @@ function startQRScanner() {
             scannerContainer.classList.add('hidden'); 
             const urlParams = new URLSearchParams(decodedText.split('?')[1]);
             const roomId = urlParams.get('room');
-            if(roomId) joinRoom(roomId);
+            if(roomId) {
+                currentRoomId = roomId;
+                statusText.innerText = "BeamO Ağına Bağlanılıyor...";
+                setupWebRTC();
+                setupRealtimeListener();
+
+                setTimeout(async () => {
+                    await sendSignal('join', { message: 'Alıcı katıldı' });
+                }, 1000);
+            }
         },
         (errorMessage) => { }
     );
-}
-
-async function joinRoom(roomId) {
-    currentRoomId = roomId;
-    statusText.innerText = "BeamO Ağına Bağlanılıyor...";
-    progressContainer.classList.remove('hidden');
-    
-    setupWebRTC();
-    setupRealtimeListener();
-
-    setTimeout(async () => {
-        await sendSignal('join', { message: 'Alıcı katıldı' });
-    }, 1000);
 }
 
 // ==========================================
@@ -479,16 +503,13 @@ function setupWebRTC() {
             progressFill.style.width = percentage + "%";
             progressPercentage.innerText = percentage + "%";
 
+            // HATA ÇÖZÜMÜ: OTOMATİK İNDİRME İPTAL EDİLDİ
             if (receivedSize === expectedFileSize) {
                 statusText.innerText = `${fileName} başarıyla alındı.`;
                 const blob = new Blob(receivedBuffers, { type: fileType });
                 const blobUrl = URL.createObjectURL(blob);
                 
-                const downloadLink = document.createElement('a');
-                downloadLink.href = blobUrl;
-                downloadLink.download = fileName;
-                downloadLink.click();
-                
+                // Artık otomatik indirmiyor, sadece galeriye şık butonla ekliyor
                 renderReceivedMedia(fileName, fileType, blobUrl);
 
                 receiveChannel.send(JSON.stringify({ type: 'file_received_ack' }));
@@ -501,6 +522,7 @@ function setupWebRTC() {
     };
 }
 
+// Alıcı tarafı manuel indirmeli galeri oluşturucu
 function renderReceivedMedia(name, type, url) {
     receivedGallery.classList.remove('hidden');
     const item = document.createElement('div');
@@ -508,22 +530,33 @@ function renderReceivedMedia(name, type, url) {
 
     let mediaHTML = '';
     if (type.startsWith('image/')) {
-        mediaHTML = `<img src="${url}" class="received-media" alt="${name}">`;
+        mediaHTML = `<div class="received-media-container"><img src="${url}" class="received-media" alt="${name}"></div>`;
     } else if (type.startsWith('video/')) {
-        mediaHTML = `<video src="${url}" controls class="received-media"></video>`;
+        mediaHTML = `<div class="received-media-container"><video src="${url}" controls class="received-media"></video></div>`;
     } else if (type.startsWith('audio/')) {
         mediaHTML = `<audio src="${url}" controls class="received-audio"></audio>`;
+    } else {
+        mediaHTML = `
+        <div class="file-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+        </div>`;
     }
 
     item.innerHTML = `
         ${mediaHTML}
-        <span style="font-size: 0.8rem; word-break: break-all;">${name}</span>
+        <div class="received-details">
+            <span class="received-name" title="${name}">${name}</span>
+            <a href="${url}" download="${name}" class="btn primary-blue btn-download">
+                <svg width="14" height="14" style="margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                İndir
+            </a>
+        </div>
     `;
     receivedList.appendChild(item);
 }
 
 // ==========================================
-// 8. YENİ DOSYA SEÇİMİ VE GÖNDERİCİ ÖNİZLEMESİ
+// 8. GÖNDERİCİ VİTRİN DOM YÖNETİMİ (Mükemmel Kare)
 // ==========================================
 fileInput.addEventListener('change', (e) => {
     const newFiles = Array.from(e.target.files);
@@ -552,15 +585,19 @@ function updateVitrinUI() {
             const tempUrl = URL.createObjectURL(file);
             previewHTML = `<img src="${tempUrl}" class="media-preview">`;
         } else if (file.type.startsWith('video/')) {
-            previewHTML = `<div class="media-preview" style="background:#111; display:flex; align-items:center; justify-content:center; color:#5eead4; font-size:0.6rem;">VIDEO</div>`;
+            previewHTML = `<div class="media-preview" style="background:#111; display:flex; align-items:center; justify-content:center; color:#5eead4; font-size:0.6rem; font-weight:bold;">VIDEO</div>`;
         } else {
-            const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
-            previewHTML = `<span class="file-ext" style="margin: 15px 0;">${ext}</span>`;
+            previewHTML = `<div class="media-preview" style="background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--text-lo); font-size:1.5rem;">📄</div>`;
         }
         
+        const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
+
         item.innerHTML = `
             ${previewHTML}
-            <span class="file-size">${(file.size / (1024*1024)).toFixed(1)}MB</span>
+            <div class="file-info-overlay">
+                <span class="file-ext">${ext}</span>
+                <span class="file-size">${(file.size / (1024*1024)).toFixed(1)}MB</span>
+            </div>
             <button class="btn-remove" onclick="removeFileFromQueue(${index})">X</button>
         `;
         fileListContainer.appendChild(item);
@@ -571,15 +608,15 @@ function updateVitrinUI() {
     if (fileQueue.length > 0) {
         stagingArea.classList.remove('hidden');
         btnStartTransfer.classList.remove('hidden'); 
-        btnSelectFile.innerText = "Daha Fazla Dosya Ekle";
+        btnSelectFile.innerText = "Daha Fazla Ekle";
     } else {
         stagingArea.classList.add('hidden');
-        btnSelectFile.innerText = "Dosya Seç";
+        btnSelectFile.innerText = "Dosya Ekle";
     }
 }
 
 // ==========================================
-// 9. AKTARIM MOTORU
+// 9. AKTARIM MOTORU (TURBO)
 // ==========================================
 function startTransfer() {
     if (fileQueue.length === 0 || isTransferring) return;
@@ -605,7 +642,7 @@ function startTransfer() {
     }));
 }
 
-function sendNextFile() {
+async function sendNextFile() {
     if (currentFileIndex >= fileQueue.length) {
         statusText.innerText = "Tüm BeamO Aktarımları Tamamlandı! 🚀";
         progressPercentage.innerText = "100%";
@@ -626,60 +663,52 @@ function sendNextFile() {
         mimeType: file.type
     }));
 
-    const chunkSize = 16384; 
+    const chunkSize = 65536; 
+    dataChannel.bufferedAmountLowThreshold = 1048576; 
     let offset = 0;
-    let lastProgress = 0; 
-    dataChannel.bufferedAmountLowThreshold = 262144; 
+    let lastProgress = 0;
 
-    const fileReader = new FileReader();
-    fileReader.onerror = error => console.error('Dosya okuma hatası:', error);
-    
-    const readSlice = o => {
-        const slice = file.slice(offset, o + chunkSize);
-        fileReader.readAsArrayBuffer(slice);
-    };
-
-    fileReader.onload = e => {
+    while (offset < file.size) {
         if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
-            dataChannel.addEventListener('bufferedamountlow', function listener() {
-                dataChannel.removeEventListener('bufferedamountlow', listener);
-                sendAndContinue(e.target.result, file.size);
+            await new Promise(resolve => {
+                const listener = () => {
+                    dataChannel.removeEventListener('bufferedamountlow', listener);
+                    resolve();
+                };
+                dataChannel.addEventListener('bufferedamountlow', listener);
             });
-        } else {
-            sendAndContinue(e.target.result, file.size);
         }
-    };
 
-    const sendAndContinue = (data, totalSize) => {
+        const slice = file.slice(offset, offset + chunkSize);
+        const buffer = await slice.arrayBuffer();
+
         try {
-            dataChannel.send(data);
-            offset += data.byteLength;
-
-            const currentProgress = Math.floor((offset / totalSize) * 100);
-            if (currentProgress > lastProgress) {
-                progressFill.style.width = currentProgress + "%";
-                progressPercentage.innerText = currentProgress + "%";
-                lastProgress = currentProgress;
-            }
-
-            if (offset < totalSize) {
-                readSlice(offset);
-            } else {
-                statusText.innerText = `Alıcının dosyayı kaydetmesi bekleniyor...`;
-            }
+            dataChannel.send(buffer);
         } catch (err) {
-            console.error("Gönderim motoru hata verdi:", err);
+            console.error("Motor tıkandı:", err);
             statusText.innerText = "Hata: Bağlantı koptu.";
+            return;
         }
-    };
 
-    readSlice(0);
+        offset += buffer.byteLength;
+
+        const currentProgress = Math.floor((offset / file.size) * 100);
+        if (currentProgress > lastProgress) {
+            progressFill.style.width = currentProgress + "%";
+            progressPercentage.innerText = currentProgress + "%";
+            lastProgress = currentProgress;
+        }
+    }
+
+    statusText.innerText = `Alıcının dosyayı işlemesi bekleniyor...`;
 }
 
 // ==========================================
 // 10. SUPABASE WEBRTC SİNYALLEŞMESİ
 // ==========================================
 function setupRealtimeListener() {
+    if(!currentRoomId) return;
+
     supabaseClient.channel('signaling_channel')
         .on('postgres_changes', { 
             event: 'INSERT', 
@@ -720,6 +749,7 @@ async function handleIncomingSignal(payload) {
 }
 
 async function sendSignal(type, payloadData) {
+    if(!currentRoomId) return;
     await supabaseClient.from('signaling_messages').insert([{
         room_id: currentRoomId,
         sender_id: localSenderId,

@@ -481,7 +481,7 @@ function setupWebRTC() {
                 const blob = new Blob(receivedBuffers, { type: fileType });
                 const blobUrl = URL.createObjectURL(blob);
                 activeObjectUrls.push(blobUrl); 
-                renderReceivedMedia(fileName, blobUrl);
+                renderReceivedMedia(fileName, blobUrl, fileType); // MIME Tipi eklendi
                 receiveChannel.send(JSON.stringify({ type: 'file_received_ack' }));
             }
         };
@@ -507,11 +507,29 @@ function appendChatMessage(text, type) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function renderReceivedMedia(name, url) {
+// YENİLENDİ: Alınan dosyaları görsel/video ile render eden fonksiyon
+function renderReceivedMedia(name, url, type) {
     receivedGallery.classList.remove('hidden');
+    
     const item = document.createElement('div');
-    item.style.margin = "8px 0";
-    item.innerHTML = `<a href="${url}" download="${name}" class="btn primary-blue">⬇️ İndir: ${name}</a>`;
+    item.className = 'received-item';
+
+    let mediaPreview = '';
+    if (type.startsWith('image/')) {
+        mediaPreview = `<img src="${url}" class="media-preview" alt="${name}">`;
+    } else if (type.startsWith('video/')) {
+        mediaPreview = `<video src="${url}" class="media-preview" controls></video>`;
+    } else {
+        mediaPreview = `<div class="file-icon">📄</div>`; 
+    }
+
+    item.innerHTML = `
+        ${mediaPreview}
+        <div class="received-info">
+            <span class="file-name" style="font-size: 0.85rem; font-weight: 600; word-break: break-all;">${name}</span>
+        </div>
+        <a href="${url}" download="${name}" class="btn primary-blue" style="width: auto;">⬇️ İndir</a>
+    `;
     receivedList.appendChild(item);
 }
 
@@ -524,14 +542,48 @@ fileInput.addEventListener('change', (e) => {
     fileQueue = [...fileQueue, ...newFiles];
     stagingArea.classList.remove('hidden');
     btnStartTransfer.classList.remove('hidden');
-    fileCountBadge.innerText = fileQueue.length;
+    renderFileList(); // YENİ: Seçilenleri ekrana bas
     fileInput.value = ''; 
 });
+
+// YENİ: Seçilen dosyaları listeleyen fonksiyon
+function renderFileList() {
+    fileListContainer.innerHTML = '';
+    fileQueue.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.innerHTML = `
+            <div class="file-info">
+                <span class="file-name" title="${file.name}">${file.name}</span>
+                <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+            </div>
+            <button class="btn-remove" onclick="removeFile(${index})" title="Kaldır">❌</button>
+        `;
+        fileListContainer.appendChild(item);
+    });
+    fileCountBadge.innerText = fileQueue.length;
+    
+    if (fileQueue.length === 0) {
+        stagingArea.classList.add('hidden');
+        btnStartTransfer.classList.add('hidden');
+    }
+}
+
+// YENİ: Seçili dosyayı kuyruktan çıkarma fonksiyonu
+function removeFile(index) {
+    if (isTransferring) return; // Aktarım sırasındaysa silmeyi engelle
+    fileQueue.splice(index, 1);
+    renderFileList();
+}
 
 function startTransfer() {
     if (fileQueue.length === 0 || isTransferring) return;
     isTransferring = true; currentFileIndex = 0;
     btnStartTransfer.classList.add('hidden');
+    
+    // Aktarım başladığında silme butonlarını gizleyelim (güvenlik için)
+    document.querySelectorAll('.btn-remove').forEach(btn => btn.style.display = 'none');
+
     const manifesto = fileQueue.map(f => ({ name: f.name, size: f.size, type: f.type }));
     dataChannel.send(JSON.stringify({ type: 'manifest', totalFiles: fileQueue.length, files: manifesto }));
 }

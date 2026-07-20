@@ -186,26 +186,26 @@ function handleRemoteDisconnect() {
     if (hasReceivedFiles) {
         statusText.innerText = "Gönderici ayrıldı. Dosyalarınızı indirebilirsiniz.";
         showModal(`
-            <div class="modal-icon-wrapper" style="background: rgba(94, 234, 212, 0.1); color: var(--primary, #5eead4); padding: 15px; border-radius: 50%; display: inline-block; margin-bottom: 15px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <div class="modal-icon-wrapper" style="background: rgba(255, 255, 255, 0.05); color: var(--text-primary); padding: 15px; border-radius: 50%; display: inline-block; margin-bottom: 15px; border: 1px solid var(--border-light);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             </div>
             <h3 style="margin-bottom: 8px;">Gönderici Ayrıldı</h3>
-            <p style="color: var(--text-lo); font-size: 0.9rem;">Karşı cihaz bağlantıyı kesti. Ancak aktarılan dosyalar belleğe alındı, işlemlerinize devam edebilirsiniz.</p>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Karşı cihaz bağlantıyı kesti. Ancak aktarılan dosyalar belleğe alındı, işlemlerinize devam edebilirsiniz.</p>
             <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
-                <button class="btn primary-blue" onclick="closeModal()">İndirmeye Devam Et</button>
-                <button class="btn outline-blue" onclick="resetApp(); closeModal();">Ana Menüye Dön</button>
+                <button class="btn btn-primary" onclick="closeModal()">İndirmeye Devam Et</button>
+                <button class="btn btn-outline" onclick="resetApp(); closeModal();">Ana Menüye Dön</button>
             </div>
         `);
     } else {
         resetApp();
         showModal(`
             <div class="modal-icon-wrapper reject">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
             </div>
             <h3 style="margin-bottom: 8px;">Bağlantı Koptu</h3>
-            <p style="color: var(--text-lo); font-size: 0.9rem;">Karşı cihaz bağlantıyı sonlandırdı veya internetten düştü.</p>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Karşı cihaz bağlantıyı sonlandırdı veya internetten düştü.</p>
             <div class="modal-actions" style="margin-top: 15px;">
-                <button class="btn primary-blue" onclick="closeModal()">Ana Menüye Dön</button>
+                <button class="btn btn-primary" onclick="closeModal()">Ana Menüye Dön</button>
             </div>
         `);
     }
@@ -215,7 +215,7 @@ function handleRemoteDisconnect() {
 // 5. BEAMOAIR (WIFI RADARI) MOTORU
 // ==========================================
 async function startBeamoAirRadar() {
-    radarList.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-lo); font-size: 0.85rem;">IP adresi tespit ediliyor... 🔍</div>';
+    radarList.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 0.85rem;">IP adresi tespit ediliyor... 🔍</div>';
 
     try {
         const ipResponse = await fetch('https://api.ipify.org?format=json');
@@ -244,13 +244,13 @@ async function startBeamoAirRadar() {
             if (data.targetId === localSenderId) {
                 showModal(`
                     <div class="modal-icon-wrapper request">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                     </div>
                     <h3 style="margin-bottom: 8px;">Bağlantı İsteği</h3>
-                    <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${data.senderName}</strong> sana bağlanmak istiyor.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;"><strong>${data.senderName}</strong> sana bağlanmak istiyor.</p>
                     <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
                         <button class="btn btn-danger" onclick="rejectConnection('${data.senderId}')">Vazgeç</button>
-                        <button class="btn primary-blue" onclick="acceptConnection('${data.senderId}', '${data.roomId}')">Onayla</button>
+                        <button class="btn btn-primary" onclick="acceptConnection('${data.senderId}', '${data.roomId}')">Onayla</button>
                     </div>
                 `);
             }
@@ -262,12 +262,12 @@ async function startBeamoAirRadar() {
                 if (data.action === 'reject') {
                     showModal(`
                         <div class="modal-icon-wrapper reject">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </div>
                         <h3 style="margin-bottom: 8px;">Reddedildi</h3>
-                        <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${data.senderName}</strong> bağlanmayı reddetti.</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;"><strong>${data.senderName}</strong> bağlanmayı reddetti.</p>
                         <div class="modal-actions" style="margin-top: 15px;">
-                            <button class="btn outline-blue" onclick="closeModal()">Kapat</button>
+                            <button class="btn btn-outline" onclick="closeModal()">Kapat</button>
                         </div>
                     `);
                 } else if (data.action === 'accept') {
@@ -301,7 +301,7 @@ function updateRadarUI(presenceState) {
         const item = document.createElement('div');
         item.className = 'radar-item';
         
-        let iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>`;
+        let iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>`;
         
         item.innerHTML = `
             <div class="radar-info">
@@ -311,27 +311,27 @@ function updateRadarUI(presenceState) {
                     <div class="radar-status">Aynı Ağda Aktif</div>
                 </div>
             </div>
-            <button onclick="sendConnectionRequest('${userData.peer_id}', '${userData.device_name}')">Bağlan</button>
+            <button class="btn-connect" onclick="sendConnectionRequest('${userData.peer_id}', '${userData.device_name}')">Bağlan</button>
         `;
         radarList.appendChild(item);
     }
 
     if (!found) {
-        radarList.innerHTML = `<div style="text-align:center; padding: 25px; color: var(--text-lo); font-size: 0.85rem;">Ağda başka cihaz bulunamadı.</div>`;
+        radarList.innerHTML = `<div style="text-align:center; padding: 25px; color: var(--text-secondary); font-size: 0.85rem;">Ağda başka cihaz bulunamadı.</div>`;
     }
 }
 
 async function sendConnectionRequest(targetPeerId, targetName) {
-    showModal(`<div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div><h3 style="margin-bottom: 8px;">Bağlanılıyor...</h3>`);
+    showModal(`<div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div><h3 style="margin-bottom: 8px;">Bağlanılıyor...</h3>`);
     
     // Hızlı Oda ID Üretimi (İstemci Tarafında Anında)
     const roomId = 'room_' + Math.random().toString(36).substring(2, 12);
     
     showModal(`
-        <div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div>
+        <div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div>
         <h3 style="margin-bottom: 8px;">Onay Bekleniyor</h3>
-        <p style="color: var(--text-lo); font-size: 0.9rem;"><strong>${targetName}</strong> cihazına istek gönderildi.</p>
-        <div class="modal-actions" style="margin-top: 15px;"><button class="btn outline-blue" onclick="closeModal()">İptal Et</button></div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;"><strong>${targetName}</strong> cihazına istek gönderildi.</p>
+        <div class="modal-actions" style="margin-top: 15px;"><button class="btn btn-outline" onclick="closeModal()">İptal Et</button></div>
     `);
 
     beamoAirChannel.send({
@@ -373,7 +373,8 @@ function createRoomAndGenerateQR() {
     currentRoomId = 'room_' + Math.random().toString(36).substring(2, 12);
     const joinLink = `${window.location.origin}/?room=${currentRoomId}`;
     
-    QRCode.toCanvas(qrCanvas, joinLink, { width: 220, margin: 1, color: { dark: '#04060c', light: '#ffffff' } }, function (error) {
+    // QR Kodu Tamamen Siyah-Beyaz
+    QRCode.toCanvas(qrCanvas, joinLink, { width: 220, margin: 1, color: { dark: '#000000', light: '#ffffff' } }, function (error) {
         statusText.innerText = "Alıcı cihazı bekliyor...";
     });
 
@@ -529,7 +530,7 @@ function renderReceivedMedia(name, type, url) {
         ${mediaHTML}
         <div class="received-details">
             <span class="received-name" title="${name}">${name}</span>
-            <a href="${url}" download="${name}" class="btn primary-blue btn-download">İndir</a>
+            <a href="${url}" download="${name}" class="btn btn-primary btn-download">İndir</a>
         </div>
     `;
     receivedList.appendChild(item);
@@ -563,9 +564,9 @@ function updateVitrinUI() {
             activeObjectUrls.push(tempUrl);
             previewHTML = `<img src="${tempUrl}" class="media-preview">`;
         } else if (file.type.startsWith('video/')) {
-            previewHTML = `<div class="media-preview" style="background:#111; display:flex; align-items:center; justify-content:center; color:#5eead4; font-size:0.6rem; font-weight:bold;">VIDEO</div>`;
+            previewHTML = `<div class="media-preview" style="background:#0a0a0a; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:0.6rem; font-weight:bold; letter-spacing: 0.1em;">VIDEO</div>`;
         } else {
-            previewHTML = `<div class="media-preview" style="background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--text-lo); font-size:1.5rem;">📄</div>`;
+            previewHTML = `<div class="media-preview" style="background:var(--bg-surface); display:flex; align-items:center; justify-content:center; color:var(--text-secondary); font-size:1.5rem;">📄</div>`;
         }
         
         const ext = file.name.split('.').pop().toUpperCase().substring(0, 4);
@@ -573,7 +574,7 @@ function updateVitrinUI() {
         item.innerHTML = `
             ${previewHTML}
             <div class="file-info-overlay"><span class="file-ext">${ext}</span><span class="file-size">${(file.size / (1024*1024)).toFixed(1)}MB</span></div>
-            <button class="btn-remove" onclick="removeFileFromQueue(${index})">X</button>
+            <button class="btn-remove" onclick="removeFileFromQueue(${index})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         `;
         fileListContainer.appendChild(item);
     });

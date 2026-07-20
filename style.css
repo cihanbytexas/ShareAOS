@@ -54,7 +54,7 @@ body {
 
 .app-container {
     width: 100%;
-    max-width: 460px;
+    max-width: 480px;
     position: relative;
     z-index: 10;
 }
@@ -188,6 +188,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 0.5rem;
+    text-decoration: none;
 }
 
 .btn:focus-visible {
@@ -222,7 +223,6 @@ body {
     transform: translateY(-1px);
 }
 
-/* Kırmızı (Tehlike/İptal) Buton */
 .btn-danger {
     background: rgba(248, 113, 113, 0.1);
     color: var(--danger);
@@ -244,7 +244,6 @@ body {
     overflow-y: auto;
     padding-right: 5px;
 }
-/* Scrollbar özelleştirmesi */
 .radar-container::-webkit-scrollbar { width: 4px; }
 .radar-container::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
 
@@ -422,62 +421,149 @@ body {
     font-weight: 700;
     font-family: var(--font-mono);
 }
+
+/* GÖNDERİCİ: THUMBNAIL KARE DÜZENİ (HATA 1 ÇÖZÜMÜ) */
 .file-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
 }
 .file-item {
     position: relative;
     background: var(--surface-3);
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    padding: 12px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    aspect-ratio: 1; /* Kusursuz Kare Yapar */
+    overflow: hidden; /* Dışarı Taşmayı Engeller */
     transition: transform 0.18s ease, border-color 0.18s ease;
 }
 .file-item:hover {
     transform: translateY(-2px);
     border-color: var(--photon-cyan);
 }
+.media-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Resmi Kutunun İçine Sığdırır ve Keser */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+.file-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    padding: 4px;
+    text-align: center;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+}
 .file-ext {
     font-family: var(--font-mono);
     font-weight: 700;
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
+    font-size: 0.65rem;
     color: var(--photon-cyan);
 }
 .file-size {
     font-family: var(--font-mono);
-    font-size: 0.64rem;
+    font-size: 0.55rem;
     color: var(--text-lo);
 }
 .btn-remove {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 19px;
-    height: 19px;
-    background: var(--surface);
-    color: var(--danger);
-    border: 1px solid var(--line-strong);
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    background: rgba(248, 113, 113, 0.9);
+    color: #fff;
+    border: none;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 9px;
+    font-size: 10px;
     font-family: var(--font-mono);
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    transition: background 0.15s ease, color 0.15s ease;
+    z-index: 3;
+    transition: transform 0.15s;
 }
 .btn-remove:hover {
-    background: var(--danger);
-    color: var(--void);
+    transform: scale(1.1);
+}
+
+/* ==========================================
+   ALICI: GALERİ VE İNDİRME TASARIMI (HATA 2 ÇÖZÜMÜ)
+========================================== */
+.received-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.received-item {
+    background: var(--surface-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.received-media-container {
+    width: 100%;
+    max-height: 250px;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+}
+.received-media {
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: contain;
+}
+.received-audio {
+    width: 100%;
+    height: 50px;
+    margin: 10px;
+}
+.file-placeholder {
+    padding: 30px;
+    color: var(--photon-cyan);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.received-details {
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.received-name {
+    font-size: 0.8rem;
+    color: var(--text-hi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.btn-download {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    min-width: 90px;
 }
 
 /* ==========================================
@@ -561,36 +647,4 @@ body {
 @keyframes node-glow {
     0%, 100% { opacity: 0.55; }
     50%      { opacity: 1; }
-}
-
-/* ==========================================
-   MEDYA VE GALERİ STİLLERİ
-========================================== */
-.media-preview {
-    width: 100%;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 4px;
-    background-color: var(--void);
-}
-.received-item {
-    background: var(--surface-3);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.received-media {
-    width: 100%;
-    max-height: 300px;
-    border-radius: var(--radius-sm);
-    object-fit: contain;
-    background: #000;
-}
-.received-audio {
-    width: 100%;
-    height: 40px;
 }

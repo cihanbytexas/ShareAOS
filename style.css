@@ -1,25 +1,285 @@
 /* ==========================================
-   YENİ: INPUT VE CHAT (SOHBET) TASARIMLARI
+   1. DEĞİŞKENLER VE SIFIRLAMA (RESET)
 ========================================== */
+:root {
+    --bg-dark: #07090e;
+    --surface-glass: rgba(15, 23, 42, 0.85);
+    --surface-2: #1e293b;
+    --surface-3: #334155;
+    --line: rgba(255, 255, 255, 0.1);
+    --line-strong: rgba(255, 255, 255, 0.25);
+    --text-hi: #f8fafc;
+    --text-lo: #94a3b8;
+    --photon-cyan: #5eead4;
+    --photon-purple: #a78bfa;
+    --danger: #f87171;
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --font-body: 'Inter', sans-serif;
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(at 10% 10%, rgba(94, 234, 212, 0.08) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(167, 139, 250, 0.08) 0px, transparent 50%);
+    color: var(--text-hi);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* HAYATİ KURAL: Gizli elemanları kesinlikle saklar */
+.hidden {
+    display: none !important;
+}
+
+.mt-2 { margin-top: 1rem; }
+
+/* ==========================================
+   2. KART VE DÜZEN (LAYOUT)
+========================================== */
+.app-container {
+    width: 100%;
+    max-width: 480px;
+}
+
+.card-glass {
+    background: var(--surface-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Header & Logo */
+.app-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.logo svg {
+    width: 38px;
+    height: 38px;
+}
+
+.logo h1 {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.logo h1 span {
+    color: var(--photon-cyan);
+}
+
+.eyebrow {
+    font-size: 0.75rem;
+    color: var(--text-lo);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    letter-spacing: 1px;
+}
+
+.eyebrow .dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--photon-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--photon-cyan);
+}
+
+/* ==========================================
+   3. BUTONLAR VE INPUTLAR
+========================================== */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.btn.primary-blue {
+    background: linear-gradient(135deg, var(--photon-cyan), #2dd4bf);
+    color: #04060c;
+}
+
+.btn.primary-blue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(94, 234, 212, 0.3);
+}
+
+.btn.outline-blue {
+    background: var(--surface-2);
+    color: var(--text-hi);
+    border: 1px solid var(--line);
+}
+
+.btn.outline-blue:hover {
+    background: var(--surface-3);
+    border-color: var(--line-strong);
+}
+
+.btn-danger {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
 .custom-input {
+    width: 100%;
     background: var(--surface-2);
     border: 1px solid var(--line);
     color: var(--text-hi);
-    padding: 10px 12px;
+    padding: 12px;
     border-radius: var(--radius-sm);
     font-family: var(--font-body);
     font-size: 0.9rem;
     outline: none;
     transition: border-color 0.2s;
 }
+
 .custom-input:focus {
     border-color: var(--photon-cyan);
 }
 
+/* ==========================================
+   4. SEKSİYONLAR & QR & RADAR
+========================================== */
+.staging-container {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+}
+
+.staging-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-lo);
+}
+
+.badge {
+    background: var(--photon-cyan);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.qr-box {
+    text-align: center;
+    background: var(--surface-2);
+    padding: 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+}
+
+.canvas-wrapper {
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.scanner-box {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--line);
+}
+
+/* Radar Listesi */
+.radar-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-3);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+}
+
+.radar-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.radar-icon {
+    color: var(--photon-cyan);
+}
+
+.radar-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.radar-status {
+    font-size: 0.75rem;
+    color: var(--text-lo);
+}
+
+.radar-item button {
+    background: var(--photon-cyan);
+    color: #000;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ==========================================
+   5. CHAT (SOHBET) PANELİ
+========================================== */
 .chat-box {
     height: 180px;
     overflow-y: auto;
-    background: var(--surface-2);
+    background: var(--bg-dark);
     border-radius: var(--radius-sm);
     padding: 12px;
     display: flex;
@@ -27,8 +287,6 @@
     gap: 8px;
     border: 1px solid var(--line);
 }
-.chat-box::-webkit-scrollbar { width: 4px; }
-.chat-box::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
 
 .chat-bubble {
     max-width: 85%;
@@ -38,16 +296,72 @@
     line-height: 1.4;
     word-break: break-word;
 }
+
 .chat-bubble.incoming {
     align-self: flex-start;
     background: var(--surface-3);
     border: 1px solid var(--line);
-    border-bottom-left-radius: 4px;
+    border-bottom-left-radius: 2px;
 }
+
 .chat-bubble.outgoing {
     align-self: flex-end;
-    background: linear-gradient(135deg, rgba(94, 234, 212, 0.15), rgba(167, 139, 250, 0.15));
-    border: 1px solid rgba(94, 234, 212, 0.3);
+    background: linear-gradient(135deg, rgba(94, 234, 212, 0.2), rgba(167, 139, 250, 0.2));
+    border: 1px solid rgba(94, 234, 212, 0.4);
     color: var(--photon-cyan);
-    border-bottom-right-radius: 4px;
+    border-bottom-right-radius: 2px;
+}
+
+/* ==========================================
+   6. İLERLEME ÇUBUĞU & MODAL
+========================================== */
+.progress-wrapper {
+    background: var(--surface-2);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-lo);
+    margin-bottom: 6px;
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--photon-cyan), var(--photon-purple));
+    transition: width 0.2s ease;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+}
+
+.modal-box {
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
 }

@@ -1,30 +1,34 @@
 /* ==========================================
-   BEAMODROP — DESIGN TOKENS
+   BEAMODROP — PREMIUM MONOCHROME DESIGN TOKENS
 ========================================== */
 :root {
-    --void:        #04060c;
-    --surface:     #0b111d;
-    --surface-2:   #121a2c;
-    --surface-3:   #1a2438;
-    --line:        rgba(148, 163, 196, 0.14);
-    --line-strong: rgba(148, 163, 196, 0.26);
+    /* Renk Paleti - Saf Monokrom */
+    --bg-base:        #000000;
+    --bg-surface:     #0c0c0c;
+    --bg-surface-2:   #141414;
+    
+    --border-light:   rgba(255, 255, 255, 0.08);
+    --border-strong:  rgba(255, 255, 255, 0.18);
+    --border-focus:   #ffffff;
 
-    --photon-cyan:   #5eead4;
-    --photon-violet: #a78bfa;
-    --signal-amber:  #fbbf24;
-    --danger:        #f87171;
+    --text-primary:   #ffffff;
+    --text-secondary: #888888;
+    --text-faint:     #555555;
 
-    --text-hi: #f3f6fb;
-    --text-lo: #8592ad;
-    --text-faint: #4d5975;
+    --accent-pure:    #ffffff;
+    --accent-invert:  #000000;
+    
+    --danger:         #ef4444; /* Sadece uyarılar için ölçülü kullanılmıştır */
 
+    /* Tipografi */
     --font-display: 'Space Grotesk', 'Inter', -apple-system, sans-serif;
     --font-body:    'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-mono:    'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 
-    --radius-lg: 22px;
-    --radius-md: 14px;
-    --radius-sm: 9px;
+    /* Keskin Kenarlar (Official görünüm için daha düşük radius) */
+    --radius-lg: 16px;
+    --radius-md: 8px;
+    --radius-sm: 4px;
 }
 
 * {
@@ -39,32 +43,31 @@ html {
 
 body {
     font-family: var(--font-body);
-    background:
-        radial-gradient(circle at 15% -10%, rgba(94, 234, 212, 0.10) 0%, transparent 45%),
-        radial-gradient(circle at 110% 10%, rgba(167, 139, 250, 0.14) 0%, transparent 50%),
-        var(--void);
-    color: var(--text-hi);
+    background-color: var(--bg-base);
+    background-image: radial-gradient(circle at top, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
+    color: var(--text-primary);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     padding: 1.5rem;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
 .app-container {
     width: 100%;
-    max-width: 480px;
+    max-width: 460px; /* Biraz daha derli toplu */
     position: relative;
     z-index: 10;
 }
 
 /* ==========================================
-   HEADER — MARK + EYEBROW
+   HEADER — RESMİ & TEMİZ MARKA ALANI
 ========================================== */
 .app-header {
     text-align: center;
-    margin-bottom: 1.75rem;
+    margin-bottom: 2rem;
 }
 
 .logo {
@@ -72,38 +75,35 @@ body {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.8rem;
 }
 
 .logo .mark {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
-    filter: drop-shadow(0 0 10px rgba(94, 234, 212, 0.35));
 }
 
 .logo h1 {
     font-family: var(--font-display);
-    font-size: 1.85rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text-hi);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--text-primary);
 }
 
 .logo h1 span {
-    background: linear-gradient(100deg, var(--photon-cyan) 10%, var(--photon-violet) 90%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-weight: 400;
+    color: var(--text-secondary);
 }
 
 .eyebrow {
     font-family: var(--font-mono);
-    font-size: 0.66rem;
-    font-weight: 500;
-    letter-spacing: 0.14em;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--text-lo);
+    color: var(--text-secondary);
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -112,48 +112,28 @@ body {
 .eyebrow .dot {
     width: 4px;
     height: 4px;
-    border-radius: 50%;
-    background: var(--photon-cyan);
-    box-shadow: 0 0 6px var(--photon-cyan);
+    background: var(--text-primary);
     display: inline-block;
 }
 
 /* ==========================================
-   CARD — GLASS SURFACE
+   CARD — KESKİN HATLARA SAHİP YÜZEY
 ========================================== */
-.card-glass {
-    position: relative;
-    background: linear-gradient(180deg, rgba(18, 26, 44, 0.75) 0%, rgba(11, 17, 29, 0.85) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--line);
+.card-official {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
-    padding: 2.1rem 1.9rem;
-    box-shadow:
-        0 30px 60px -20px rgba(0, 0, 0, 0.65),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 2.5rem 2rem;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8);
     text-align: center;
     overflow: hidden;
 }
 
-.card-glass::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    padding: 1px;
-    border-radius: var(--radius-lg);
-    background: linear-gradient(140deg, rgba(94, 234, 212, 0.35), transparent 30%, transparent 70%, rgba(167, 139, 250, 0.35));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-}
-
 .subtitle {
-    font-size: 0.87rem;
-    color: var(--text-lo);
-    margin-bottom: 1.1rem;
-    line-height: 1.5;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
 }
 
 .hidden {
@@ -161,80 +141,78 @@ body {
 }
 
 .mt-2 {
-    margin-top: 1.4rem;
+    margin-top: 1.5rem;
 }
 
 /* ==========================================
-   BUTTONS
+   BUTTONS — PREMIUM MONOKROM
 ========================================== */
 .action-buttons {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.75rem;
 }
 
 .btn {
     width: 100%;
-    padding: 0.95rem 1rem;
+    padding: 1rem;
     font-family: var(--font-body);
-    font-size: 0.98rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.02em;
     cursor: pointer;
     border-radius: var(--radius-md);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    transition: all 0.15s ease;
     border: none;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     text-decoration: none;
 }
 
 .btn:focus-visible {
-    outline: 2px solid var(--photon-cyan);
-    outline-offset: 3px;
+    outline: 2px solid var(--text-primary);
+    outline-offset: 2px;
 }
 
-.btn.primary-blue {
-    background: linear-gradient(100deg, #34d3b8 0%, #8b6ff0 100%);
-    color: #04060c;
-    box-shadow: 0 10px 26px -8px rgba(94, 234, 212, 0.4);
+/* Birincil Buton (Saf Beyaz zemin, Siyah yazı) */
+.btn-primary {
+    background: var(--text-primary);
+    color: var(--bg-base);
+    box-shadow: 0 4px 14px 0 rgba(255, 255, 255, 0.1);
 }
-
-.btn.primary-blue:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px -8px rgba(94, 234, 212, 0.5);
+.btn-primary:hover {
+    background: #e6e6e6;
+    transform: translateY(-1px);
 }
-
-.btn.primary-blue:active {
+.btn-primary:active {
     transform: translateY(0);
 }
 
-.btn.outline-blue {
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text-hi);
-    border: 1px solid var(--line-strong);
+/* İkincil Buton (Şeffaf zemin, Beyaz çerçeve) */
+.btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
 }
-
-.btn.outline-blue:hover {
-    border-color: var(--photon-cyan);
-    background: rgba(94, 234, 212, 0.06);
-    transform: translateY(-1px);
+.btn-outline:hover {
+    background: var(--bg-surface-2);
+    border-color: var(--text-primary);
 }
 
 .btn-danger {
-    background: rgba(248, 113, 113, 0.1);
+    background: transparent;
     color: var(--danger);
-    border: 1px solid rgba(248, 113, 113, 0.4);
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 .btn-danger:hover {
-    background: rgba(248, 113, 113, 0.2);
+    background: rgba(239, 68, 68, 0.1);
     border-color: var(--danger);
 }
 
 /* ==========================================
-   RADAR UI (BeamoAir)
+   RADAR UI (BeamoAir) — ŞIK LİSTE
 ========================================== */
 .radar-container {
     display: flex;
@@ -244,119 +222,129 @@ body {
     overflow-y: auto;
     padding-right: 5px;
 }
-.radar-container::-webkit-scrollbar { width: 4px; }
-.radar-container::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
+.radar-container::-webkit-scrollbar { width: 3px; }
+.radar-container::-webkit-scrollbar-thumb { background: var(--border-strong); }
 
 .radar-item {
-    background: var(--surface-3);
-    border: 1px solid var(--line);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    padding: 12px;
+    padding: 12px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 .radar-item:hover {
-    border-color: var(--photon-cyan);
-    background: rgba(94, 234, 212, 0.03);
+    border-color: var(--border-focus);
 }
 
 .radar-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     text-align: left;
 }
 .radar-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
+    width: 32px;
+    height: 32px;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--photon-cyan);
+    color: var(--text-primary);
 }
 .radar-name {
     font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-hi);
+    font-size: 0.85rem;
+    color: var(--text-primary);
 }
 .radar-status {
-    font-size: 0.7rem;
-    color: var(--photon-cyan);
+    font-size: 0.65rem;
+    color: var(--text-secondary);
     font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
 }
 
-.radar-item button {
+.btn-connect {
     padding: 6px 14px;
-    font-size: 0.8rem;
-    border-radius: 20px;
-    background: var(--photon-cyan);
-    color: #000;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    background: var(--text-primary);
+    color: var(--bg-base);
     border: none;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.15s;
+    transition: background 0.15s;
 }
-.radar-item button:hover {
-    transform: scale(1.05);
+.btn-connect:hover {
+    background: #cccccc;
 }
 
 /* ==========================================
-   MODAL OVERLAY (Pop-up)
+   MODAL OVERLAY (Pop-up) — KESKİN DÜZEN
 ========================================== */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(4, 6, 12, 0.7);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
     padding: 20px;
     opacity: 1;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease;
 }
 
 .modal-box {
     width: 100%;
-    max-width: 340px;
-    padding: 2rem 1.5rem;
+    max-width: 360px;
+    padding: 2.5rem 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    animation: modal-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: modal-fade-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes modal-pop {
-    0% { transform: scale(0.8); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+@keyframes modal-fade-up {
+    0% { transform: translateY(15px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 .modal-icon-wrapper {
-    width: 60px; height: 60px;
+    width: 54px; height: 54px;
     border-radius: 50%;
     display: flex; justify-content: center; align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
+    border: 1px solid var(--border-strong);
 }
 .modal-icon-wrapper.wait {
-    background: rgba(94, 234, 212, 0.1);
-    color: var(--photon-cyan);
-    animation: pulse 2s infinite;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    animation: pulse-border 1.5s infinite;
 }
 .modal-icon-wrapper.request {
-    background: rgba(167, 139, 250, 0.1);
-    color: var(--photon-violet);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-color: var(--text-primary);
 }
 .modal-icon-wrapper.reject {
-    background: rgba(248, 113, 113, 0.1);
+    background: rgba(239, 68, 68, 0.05);
     color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.3);
 }
+
+.modal-box h3 {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+}
+
 .modal-actions {
     display: flex;
     width: 100%;
@@ -365,154 +353,136 @@ body {
 }
 
 /* ==========================================
-   QR AREA & STAGING
+   QR KOD & STAGING (Dosya Vitrini)
 ========================================== */
 .qr-box .subtitle {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.5rem;
 }
 .canvas-wrapper {
-    background: #ffffff;
-    padding: 16px;
-    border-radius: var(--radius-md);
+    background: #ffffff; /* Beyaz Çerçeve QR'ın Kusursuz Okunmasını Sağlar */
+    padding: 12px;
+    border-radius: var(--radius-sm);
     display: inline-block;
-    box-shadow: 0 16px 34px -10px rgba(0, 0, 0, 0.45);
-    position: relative;
 }
-.canvas-wrapper::after {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(94, 234, 212, 0.5);
-    pointer-events: none;
-}
+
 .scanner-box {
     border-radius: var(--radius-md);
     overflow: hidden;
-    border: 1px solid var(--line-strong);
-    box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.08);
+    border: 1px solid var(--border-strong);
+    background: #000;
 }
 
 .staging-container {
-    background: rgba(0, 0, 0, 0.22);
-    border: 1px dashed var(--line-strong);
+    background: transparent;
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
-    padding: 1.35rem 1.1rem;
+    padding: 1.5rem 1.2rem;
 }
 .staging-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-lo);
-    margin-bottom: 1rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid var(--line);
+    color: var(--text-secondary);
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border-light);
 }
 .badge {
-    background: linear-gradient(100deg, var(--photon-cyan), var(--photon-violet));
-    color: #04060c;
-    padding: 2px 9px;
+    background: var(--text-primary);
+    color: var(--bg-base);
+    padding: 2px 8px;
     border-radius: 20px;
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     font-weight: 700;
-    font-family: var(--font-mono);
 }
 
-/* GÖNDERİCİ: THUMBNAIL KARE DÜZENİ (HATA 1 ÇÖZÜMÜ) */
+/* GÖNDERİCİ: STÜDYO TARZI MİNİMAL ÖNİZLEME */
 .file-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 12px;
+    gap: 10px;
 }
 .file-item {
     position: relative;
-    background: var(--surface-3);
-    border: 1px solid var(--line);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 1; /* Kusursuz Kare Yapar */
-    overflow: hidden; /* Dışarı Taşmayı Engeller */
-    transition: transform 0.18s ease, border-color 0.18s ease;
+    aspect-ratio: 1;
+    overflow: hidden;
+    transition: border-color 0.15s ease;
 }
 .file-item:hover {
-    transform: translateY(-2px);
-    border-color: var(--photon-cyan);
+    border-color: var(--text-primary);
 }
 .media-preview {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Resmi Kutunun İçine Sığdırır ve Keser */
+    object-fit: cover;
     position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
+    top: 0; left: 0; z-index: 1;
+    filter: grayscale(100%); /* Stüdyo görünümü için siyah beyaz filtre (Opsiyonel) */
+    transition: filter 0.2s;
+}
+.file-item:hover .media-preview {
+    filter: grayscale(0%);
 }
 .file-info-overlay {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    bottom: 0; left: 0; width: 100%;
+    background: rgba(0, 0, 0, 0.85);
     padding: 4px;
     text-align: center;
     z-index: 2;
     display: flex;
     flex-direction: column;
+    border-top: 1px solid var(--border-light);
 }
 .file-ext {
     font-family: var(--font-mono);
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.65rem;
-    color: var(--photon-cyan);
+    color: var(--text-primary);
 }
 .file-size {
     font-family: var(--font-mono);
     font-size: 0.55rem;
-    color: var(--text-lo);
+    color: var(--text-secondary);
 }
 .btn-remove {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 22px;
-    height: 22px;
-    background: rgba(248, 113, 113, 0.9);
-    color: #fff;
-    border: none;
-    border-radius: 50%;
+    top: 6px; right: 6px;
+    width: 20px; height: 20px;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 10px;
-    font-family: var(--font-mono);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    display: flex; align-items: center; justify-content: center;
     z-index: 3;
-    transition: transform 0.15s;
+    transition: all 0.15s;
 }
 .btn-remove:hover {
-    transform: scale(1.1);
+    background: var(--text-primary);
+    color: var(--bg-base);
 }
 
-/* ==========================================
-   ALICI: GALERİ VE İNDİRME TASARIMI (HATA 2 ÇÖZÜMÜ)
-========================================== */
+/* ALICI: GALERİ */
 .received-grid {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 .received-item {
-    background: var(--surface-3);
-    border: 1px solid var(--line);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     overflow: hidden;
     display: flex;
@@ -521,11 +491,11 @@ body {
 .received-media-container {
     width: 100%;
     max-height: 250px;
-    background: #000;
+    background: var(--bg-base);
     display: flex;
     justify-content: center;
     align-items: center;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--border-light);
 }
 .received-media {
     max-width: 100%;
@@ -533,45 +503,43 @@ body {
     object-fit: contain;
 }
 .received-audio {
-    width: 100%;
-    height: 50px;
+    width: calc(100% - 20px);
     margin: 10px;
 }
 .file-placeholder {
-    padding: 30px;
-    color: var(--photon-cyan);
+    padding: 40px;
+    color: var(--text-secondary);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
 }
 .received-details {
-    padding: 12px 15px;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
 }
 .received-name {
     font-size: 0.8rem;
-    color: var(--text-hi);
+    font-family: var(--font-mono);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .btn-download {
-    padding: 8px 12px;
+    padding: 8px 14px;
     font-size: 0.75rem;
-    border-radius: 8px;
-    min-width: 90px;
+    min-width: max-content;
 }
 
 /* ==========================================
-   PROGRESS / TRANSFER STATE
+   İLERLEME ÇUBUĞU (Progress Bar)
 ========================================== */
 .progress-wrapper {
-    background: rgba(0, 0, 0, 0.28);
-    border: 1px solid var(--line);
+    background: transparent;
+    border: 1px solid var(--border-strong);
     padding: 16px;
     border-radius: var(--radius-md);
 }
@@ -580,71 +548,56 @@ body {
     justify-content: space-between;
     align-items: baseline;
     font-size: 0.8rem;
-    color: var(--text-lo);
-    margin-bottom: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
 }
 #status-text {
     font-family: var(--font-body);
-    color: var(--text-hi);
+    color: var(--text-primary);
     font-weight: 500;
 }
 #progress-percentage {
     font-family: var(--font-mono);
-    color: var(--photon-cyan);
+    color: var(--text-primary);
     font-weight: 600;
 }
 .progress-bar {
     width: 100%;
-    height: 7px;
-    background-color: rgba(255, 255, 255, 0.06);
-    border-radius: 4px;
+    height: 4px;
+    background-color: var(--border-light);
+    border-radius: 2px;
     overflow: hidden;
     position: relative;
 }
 .progress-fill {
-    position: relative;
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, var(--photon-cyan), var(--photon-violet));
-    border-radius: 4px;
+    background: var(--text-primary);
     transition: width 0.15s linear;
-    box-shadow: 0 0 12px rgba(94, 234, 212, 0.55);
-    overflow: hidden;
-}
-.progress-fill::after {
-    content: "";
-    position: absolute;
-    top: 0; bottom: 0; width: 40%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
-    animation: photon-travel 1.3s linear infinite;
 }
 
-@keyframes photon-travel {
-    from { transform: translateX(-120%); }
-    to   { transform: translateX(280%); }
-}
+/* ==========================================
+   ANİMASYONLAR
+========================================== */
 .animate-pulse {
-    animation: pulse 2.2s infinite;
+    animation: solid-pulse 2s infinite;
 }
-@keyframes pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.35); }
-    70%  { box-shadow: 0 0 0 12px rgba(94, 234, 212, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); }
+@keyframes solid-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
 }
+
+@keyframes pulse-border {
+    0%   { border-color: rgba(255, 255, 255, 0.1); }
+    50%  { border-color: rgba(255, 255, 255, 0.8); }
+    100% { border-color: rgba(255, 255, 255, 0.1); }
+}
+
+/* Marka Logo Animasyonu */
 .mark .beam-line {
-    stroke-dasharray: 6 5;
-    animation: beam-flow 1.8s linear infinite;
+    animation: flow 2s linear infinite;
 }
-@keyframes beam-flow {
-    to { stroke-dashoffset: -22; }
-}
-.mark .node {
-    animation: node-glow 2.6s ease-in-out infinite;
-}
-.mark .node.node-b {
-    animation-delay: 1.3s;
-}
-@keyframes node-glow {
-    0%, 100% { opacity: 0.55; }
-    50%      { opacity: 1; }
+@keyframes flow {
+    to { stroke-dashoffset: -8; }
 }

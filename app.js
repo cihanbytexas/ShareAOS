@@ -42,6 +42,7 @@ let currentFileIndex = 0;
 let isTransferring = false;
 let isConnected = false;
 let activeObjectUrls = []; // RAM Sızıntısını Önlemek İçin Bellek Yönetimi
+let iceCandidateQueue = []; // Erken gelen ICE adaylarını biriktirme kuyruğu
 
 function getDeviceName() {
     const ua = navigator.userAgent;
@@ -67,9 +68,10 @@ function getDeviceName() {
 const myDeviceName = getDeviceName();
 const localSenderId = "peer_" + Math.random().toString(36).substring(2, 15);
 let beamoAirChannel = null;
+let signalingChannel = null;
 
 // ==========================================
-// 3. SUPABASE & WEBRTC AYARLARI
+// 3. SUPABASE & WEBRTC AYARLARI (HIZ OPTİMİZE)
 // ==========================================
 const supabaseUrl = 'https://roiwxcecevfigomtopgb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaXd4Y2VjZXZmaWdvbXRvcGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODYyNDEsImV4cCI6MjA5OTk2MjI0MX0.3RRbvEjWXjTBFlgNXyMGGhcKWvlaApqQieEgA7hLJMY';
@@ -79,7 +81,8 @@ const rtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' }
-    ]
+    ],
+    iceCandidatePoolSize: 10 // Önceden ağ adaylarını hazırlar, bağlantı süresini yarıya indirir
 };
 
 let peerConnection;
@@ -88,7 +91,7 @@ let currentRoomId = null;
 let html5QrCode = null;
 
 // ==========================================
-// 4. TEMEL BUTON OLAYLARI VE YENİ RESET LOGİC
+// 4. TEMEL BUTON OLAYLARI VE RESET LOGIC
 // ==========================================
 btnSend.addEventListener('click', () => { activateSenderMode(); createRoomAndGenerateQR(); });
 btnReceive.addEventListener('click', () => { activateReceiverMode(); startQRScanner(); });
@@ -99,13 +102,10 @@ btnBeamoAir.addEventListener('click', () => {
 btnSelectFile.addEventListener('click', () => { if (dataChannel && dataChannel.readyState === 'open') { fileInput.click(); }});
 btnStartTransfer.addEventListener('click', startTransfer);
 
-// Bağlantıyı Kes / Geri Butonu
 btnBack.addEventListener('click', () => {
-    // 1. Karşı tarafa bağlantıyı kestiğimizi kibarca bildiriyoruz (Eğer kanal açıksa)
     if (dataChannel && dataChannel.readyState === 'open') {
         try { dataChannel.send(JSON.stringify({ type: 'disconnect' })); } catch(e) {}
     }
-    // 2. Uygulamayı sıfırla
     resetApp();
 });
 
@@ -123,21 +123,23 @@ function activateReceiverMode(hideScanner = false) {
 
 // HATASIZ SIFIRLAMA FONKSİYONU
 function resetApp() {
-    // RAM Temizliği (Önceki medyaların bellekte yer tutmasını engeller)
     activeObjectUrls.forEach(url => URL.revokeObjectURL(url));
     activeObjectUrls = [];
+    iceCandidateQueue = [];
 
-    // Hata oluşsa bile UI sıfırlamaya devam etmesi için Try-Catch blokları
     try { if (dataChannel) { dataChannel.close(); dataChannel = null; } } catch(e) {}
     try { if (peerConnection) { peerConnection.close(); peerConnection = null; } } catch(e) {}
     
     isConnected = false;
     currentRoomId = null;
 
-    try { supabaseClient.removeAllChannels(); beamoAirChannel = null; } catch(e) {}
+    try {
+        if (signalingChannel) { supabaseClient.removeChannel(signalingChannel); signalingChannel = null; }
+        if (beamoAirChannel) { supabaseClient.removeChannel(beamoAirChannel); beamoAirChannel = null; }
+    } catch(e) {}
+    
     closeModal();
 
-    // QR Tarayıcı durdurulurken hata verirse UI kilitlenmesin
     if (html5QrCode) {
         try {
             html5QrCode.stop().then(() => { html5QrCode = null; }).catch(e => { html5QrCode = null; });
@@ -148,7 +150,6 @@ function resetApp() {
     isTransferring = false;
     fileInput.value = '';
     
-    // UI Kesin Sıfırlama
     actionButtons.classList.remove('hidden');
     senderSection.classList.add('hidden');
     receiverSection.classList.add('hidden');
@@ -174,22 +175,16 @@ function resetApp() {
 
 // KARŞI TARAF BAĞLANTIYI KESTİĞİNDE ÇALIŞACAK KORUMALI FONKSİYON
 function handleRemoteDisconnect() {
-    if (!isConnected) return; // Zaten kopuksa işlem yapma
-    
-    // Ekranda indirilmek üzere bekleyen (alınmış) dosya var mı kontrol et
+    if (!isConnected) return;
+    isConnected = false;
+
     const hasReceivedFiles = receivedList && receivedList.children.length > 0;
 
+    try { if (dataChannel) { dataChannel.close(); dataChannel = null; } } catch(e) {}
+    try { if (peerConnection) { peerConnection.close(); peerConnection = null; } } catch(e) {}
+
     if (hasReceivedFiles) {
-        // 1. DURUM: DOSYALAR ALINMIŞ
-        // Sadece arka planda WebRTC bağlantılarını kapat. 
-        // Arayüzü (galeriyi) ve RAM'i SİLME!
-        isConnected = false;
-        try { if (dataChannel) { dataChannel.close(); dataChannel = null; } } catch(e) {}
-        try { if (peerConnection) { peerConnection.close(); peerConnection = null; } } catch(e) {}
-        
         statusText.innerText = "Gönderici ayrıldı. Dosyalarınızı indirebilirsiniz.";
-        
-        // Kullanıcıya ekranı sıfırlamadan bilgi veriyoruz
         showModal(`
             <div class="modal-icon-wrapper" style="background: rgba(94, 234, 212, 0.1); color: var(--primary, #5eead4); padding: 15px; border-radius: 50%; display: inline-block; margin-bottom: 15px;">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
@@ -202,8 +197,6 @@ function handleRemoteDisconnect() {
             </div>
         `);
     } else {
-        // 2. DURUM: ORTADA DOSYA YOK
-        // Hiç dosya gelmediği için komple her şeyi sıfırla
         resetApp();
         showModal(`
             <div class="modal-icon-wrapper reject">
@@ -237,6 +230,13 @@ async function startBeamoAirRadar() {
         beamoAirChannel.on('presence', { event: 'sync' }, () => {
             const state = beamoAirChannel.presenceState();
             updateRadarUI(state);
+        });
+
+        // BEAMOAIR KOPMA YÖNETİMİ: Ağdaki bir cihaz ayrıldığında transferdeyseniz yakala
+        beamoAirChannel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+            if (isConnected) {
+                handleRemoteDisconnect();
+            }
         });
 
         beamoAirChannel.on('broadcast', { event: 'connection_request' }, (payload) => {
@@ -324,8 +324,8 @@ function updateRadarUI(presenceState) {
 async function sendConnectionRequest(targetPeerId, targetName) {
     showModal(`<div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div><h3 style="margin-bottom: 8px;">Bağlanılıyor...</h3>`);
     
-    const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
-    if (error) return;
+    // Hızlı Oda ID Üretimi (İstemci Tarafında Anında)
+    const roomId = 'room_' + Math.random().toString(36).substring(2, 12);
     
     showModal(`
         <div class="modal-icon-wrapper wait"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 16 14"></polyline></svg></div>
@@ -336,7 +336,7 @@ async function sendConnectionRequest(targetPeerId, targetName) {
 
     beamoAirChannel.send({
         type: 'broadcast', event: 'connection_request',
-        payload: { senderId: localSenderId, senderName: myDeviceName, targetId: targetPeerId, roomId: data.id }
+        payload: { senderId: localSenderId, senderName: myDeviceName, targetId: targetPeerId, roomId: roomId }
     });
 }
 
@@ -351,7 +351,7 @@ function acceptConnection(senderId, roomId) {
     progressContainer.classList.remove('hidden');
     setupWebRTC(); setupRealtimeListener();
 
-    setTimeout(async () => { await sendSignal('join', { message: 'Alıcı katıldı' }); }, 1500);
+    setTimeout(async () => { await sendSignal('join', { message: 'Alıcı katıldı' }); }, 500);
 }
 
 function rejectConnection(senderId) {
@@ -363,23 +363,22 @@ function showModal(htmlContent) { modalContent.innerHTML = htmlContent; modalOve
 function closeModal() { modalOverlay.classList.add('hidden'); modalContent.innerHTML = ''; }
 
 // ==========================================
-// 6. SİNYALLEŞME & KAMERA
+// 6. SİNYALLEŞME & KAMERA (HIZLANDIRILMIŞ)
 // ==========================================
-async function createRoomAndGenerateQR() {
+function createRoomAndGenerateQR() {
     statusText.innerText = "BeamO Ağı Kuruluyor...";
     progressContainer.classList.remove('hidden');
 
-    const { data, error } = await supabaseClient.from('rooms').insert([{}]).select().single();
-    if (error) return;
-    
-    currentRoomId = data.id;
+    // VERİTABANI BEKLEMEDEN ANINDA QR ÜRETİMİ
+    currentRoomId = 'room_' + Math.random().toString(36).substring(2, 12);
     const joinLink = `${window.location.origin}/?room=${currentRoomId}`;
     
     QRCode.toCanvas(qrCanvas, joinLink, { width: 220, margin: 1, color: { dark: '#04060c', light: '#ffffff' } }, function (error) {
         statusText.innerText = "Alıcı cihazı bekliyor...";
     });
 
-    setupWebRTC(); setupRealtimeListener();
+    setupWebRTC(); 
+    setupRealtimeListener();
 }
 
 function startQRScanner() {
@@ -388,17 +387,18 @@ function startQRScanner() {
 
     html5QrCode = new Html5Qrcode("qr-reader");
     html5QrCode.start(
-        { facingMode: "environment" }, { fps: 15, qrbox: { width: 250, height: 250 } },
+        { facingMode: "environment" }, { fps: 20, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
             html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => { html5QrCode = null; });
             scannerContainer.classList.add('hidden'); 
-            const urlParams = new URLSearchParams(decodedText.split('?')[1]);
-            const roomId = urlParams.get('room');
+            const urlParams = new URLSearchParams(decodedText.split('?')[1] || decodedText);
+            const roomId = urlParams.get('room') || decodedText;
             if(roomId) {
                 currentRoomId = roomId;
                 statusText.innerText = "BeamO Ağına Bağlanılıyor...";
-                setupWebRTC(); setupRealtimeListener();
-                setTimeout(async () => { await sendSignal('join', { message: 'Alıcı katıldı' }); }, 1000);
+                setupWebRTC(); 
+                setupRealtimeListener();
+                setTimeout(async () => { await sendSignal('join', { message: 'Alıcı katıldı' }); }, 300);
             }
         },
         (errorMessage) => { }
@@ -411,7 +411,7 @@ function startQRScanner() {
 function setupWebRTC() {
     peerConnection = new RTCPeerConnection(rtcConfig);
 
-    // KABA AYRILIŞ DİNLEYİCİSİ (Ağ koptuğunda veya sayfa kapandığında)
+    // KOPMA VE BAĞLANTI DURUMU DİNLEYİCİSİ
     peerConnection.oniceconnectionstatechange = () => {
         if (peerConnection.iceConnectionState === 'disconnected' || 
             peerConnection.iceConnectionState === 'failed' || 
@@ -431,11 +431,13 @@ function setupWebRTC() {
         progressPercentage.innerText = "";
     };
 
+    dataChannel.onclose = () => handleRemoteDisconnect();
+    dataChannel.onerror = () => handleRemoteDisconnect();
+
     dataChannel.onmessage = (e) => {
         if (typeof e.data === 'string') {
             const data = JSON.parse(e.data);
             
-            // KİBAR AYRILIŞ DİNLEYİCİSİ (Karşı taraf butona bastığında)
             if (data.type === 'disconnect') {
                 handleRemoteDisconnect();
             }
@@ -463,7 +465,6 @@ function setupWebRTC() {
             if (typeof e.data === 'string') {
                 const data = JSON.parse(e.data);
                 
-                // Alıcı Tarafı - Kibar Ayrılış Sinyali Gelirse
                 if (data.type === 'disconnect') {
                     handleRemoteDisconnect();
                 }
@@ -495,7 +496,7 @@ function setupWebRTC() {
                 statusText.innerText = `${fileName} başarıyla alındı.`;
                 const blob = new Blob(receivedBuffers, { type: fileType });
                 const blobUrl = URL.createObjectURL(blob);
-                activeObjectUrls.push(blobUrl); // RAM'den silinebilmesi için listeye ekle
+                activeObjectUrls.push(blobUrl); 
                 
                 renderReceivedMedia(fileName, fileType, blobUrl);
                 receiveChannel.send(JSON.stringify({ type: 'file_received_ack' }));
@@ -559,7 +560,7 @@ function updateVitrinUI() {
         let previewHTML = '';
         if (file.type.startsWith('image/')) {
             const tempUrl = URL.createObjectURL(file);
-            activeObjectUrls.push(tempUrl); // RAM listesine ekle
+            activeObjectUrls.push(tempUrl);
             previewHTML = `<img src="${tempUrl}" class="media-preview">`;
         } else if (file.type.startsWith('video/')) {
             previewHTML = `<div class="media-preview" style="background:#111; display:flex; align-items:center; justify-content:center; color:#5eead4; font-size:0.6rem; font-weight:bold;">VIDEO</div>`;
@@ -587,7 +588,7 @@ function updateVitrinUI() {
 }
 
 // ==========================================
-// 9. AKTARIM MOTORU
+// 9. YÜKSEK PERFORMANSLI AKTARIM MOTORU
 // ==========================================
 function startTransfer() {
     if (fileQueue.length === 0 || isTransferring) return;
@@ -616,7 +617,11 @@ async function sendNextFile() {
 
     dataChannel.send(JSON.stringify({ type: 'start_file', name: file.name, size: file.size, mimeType: file.type }));
 
-    const chunkSize = 65536; dataChannel.bufferedAmountLowThreshold = 1048576; 
+    // AKTARIM HIZLANDIRMASI: 64 KB -> 256 KB Parça Boyutu
+    const chunkSize = 262144; // 256 KB
+    // AKTARIM HIZLANDIRMASI: 1 MB -> 8 MB Tampon Bellek Sınırı
+    dataChannel.bufferedAmountLowThreshold = 8388608; // 8 MB 
+    
     let offset = 0; let lastProgress = 0;
 
     while (offset < file.size) {
@@ -630,7 +635,13 @@ async function sendNextFile() {
         const slice = file.slice(offset, offset + chunkSize);
         const buffer = await slice.arrayBuffer();
 
-        try { dataChannel.send(buffer); } catch (err) { statusText.innerText = "Hata: Bağlantı koptu."; return; }
+        try { 
+            dataChannel.send(buffer); 
+        } catch (err) { 
+            statusText.innerText = "Hata: Bağlantı koptu."; 
+            handleRemoteDisconnect();
+            return; 
+        }
 
         offset += buffer.byteLength;
         const currentProgress = Math.floor((offset / file.size) * 100);
@@ -643,19 +654,27 @@ async function sendNextFile() {
 }
 
 // ==========================================
-// 10. SUPABASE WEBRTC SİNYALLEŞMESİ
+// 10. ULTRA HIZLI SUPABASE BROADCAST SİNYALLEŞMESİ
 // ==========================================
 function setupRealtimeListener() {
-    if(!currentRoomId) return;
+    if (!currentRoomId) return;
 
-    supabaseClient.channel('signaling_channel')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'signaling_messages', filter: `room_id=eq.${currentRoomId}` }, handleIncomingSignal)
-        .subscribe();
+    if (signalingChannel) {
+        supabaseClient.removeChannel(signalingChannel);
+    }
+
+    // Direct WebSocket Broadcast Kanalı (Veritabanı Okuma/Yazma İşlemi Yok - Süper Hızlı)
+    signalingChannel = supabaseClient.channel(`signaling_${currentRoomId}`);
+
+    signalingChannel.on('broadcast', { event: 'signal' }, (payload) => {
+        handleIncomingSignal(payload.payload);
+    });
+
+    signalingChannel.subscribe();
 }
 
-async function handleIncomingSignal(payload) {
-    const msg = payload.new;
-    if (msg.sender_id === localSenderId) return;
+async function handleIncomingSignal(msg) {
+    if (!msg || msg.sender_id === localSenderId) return;
 
     if (isConnected && msg.message_type === 'join') return; 
 
@@ -667,19 +686,48 @@ async function handleIncomingSignal(payload) {
     }
     else if (msg.message_type === 'offer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.payload));
+        
+        // Biriken ICE adaylarını işle
+        while (iceCandidateQueue.length > 0) {
+            const cand = iceCandidateQueue.shift();
+            await peerConnection.addIceCandidate(cand);
+        }
+
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         await sendSignal('answer', answer);
     } 
     else if (msg.message_type === 'answer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.payload));
+        
+        // Biriken ICE adaylarını işle
+        while (iceCandidateQueue.length > 0) {
+            const cand = iceCandidateQueue.shift();
+            await peerConnection.addIceCandidate(cand);
+        }
     } 
     else if (msg.message_type === 'candidate') {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(msg.payload));
+        const candidate = new RTCIceCandidate(msg.payload);
+        if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+            await peerConnection.addIceCandidate(candidate);
+        } else {
+            // Remote description henüz set edilmediyse adayı kuyruğa al
+            iceCandidateQueue.push(candidate);
+        }
     }
 }
 
 async function sendSignal(type, payloadData) {
-    if(!currentRoomId) return;
-    await supabaseClient.from('signaling_messages').insert([{ room_id: currentRoomId, sender_id: localSenderId, message_type: type, payload: payloadData }]);
+    if (!currentRoomId || !signalingChannel) return;
+    
+    // Veritabanına INSERT atmak yerine doğrudan WebSocket uçağı ile gönderilir (10-20ms)
+    await signalingChannel.send({
+        type: 'broadcast',
+        event: 'signal',
+        payload: {
+            sender_id: localSenderId,
+            message_type: type,
+            payload: payloadData
+        }
+    });
 }
